@@ -7,3 +7,7 @@ class ViewerError(Exception):
 
 class EnvironmentCheckError(ViewerError):
     """A required dependency is missing or cannot run."""
+
+
+class GraphValidationError(ViewerError):
+    """A graph operation would violate its structural invariants."""

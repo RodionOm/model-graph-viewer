@@ -10,8 +10,9 @@ checks.
 
 ## Current status
 
-The package skeleton and environment check are implemented. Model loading,
-transformation passes, and the model-to-SVG command are still in development.
+The package setup, environment check, and framework-independent graph API are
+implemented and tested. Model loading, transformation passes, and the model-to-SVG
+command are still in development.
 The original [starter_code.py](starter_code.py) is preserved as a standalone
 Graphviz example.
 
@@ -94,6 +95,70 @@ Each completed implementation stage is tested, committed separately, and pushed
 to this repository. Generated local models, virtual environments, and temporary
 artifacts are excluded from Git.
 
+## Graph API
+
+Construct and inspect a graph directly, without loading a model:
+
+```python
+from model_graph_viewer import Edge, Graph, Node, TensorMetadata, TensorShape
+
+tensor = TensorMetadata(shape=TensorShape((None, 768)), dtype="fp32")
+graph = Graph(
+    nodes=[
+        Node("0", "input", "Parameter", output_ports=(0,)),
+        Node("1", "add", "Add", input_ports=(0, 1), output_ports=(0,)),
+    ],
+    edges=[
+        Edge("0", 0, "1", 0, tensor),
+        Edge("0", 0, "1", 1, tensor),
+    ],
+)
+graph.validate()
+
+for edge in graph.incoming("1"):
+    print(f"out {edge.from_port} -> in {edge.to_port}: {edge.tensor}")
+```
+
+This example preserves both connections from the same source to separate input
+ports. Each input port has at most one source. An output can have many consumers.
+Port numbers are explicit and need not be contiguous.
+
+`graph.nodes` is a read-only mapping keyed by unique string IDs. Names may repeat.
+`graph.edges` is a read-only mapping keyed by `(destination_node_id, input_port)`.
+Use `add_node`, `add_edge`, `remove_edge(destination_id, input_port)`, and
+`remove_node` to change structure. Removing a node also removes its incident
+edges; removing an edge preserves the declared ports.
+
+`incoming` and `outgoing` return snapshots of local connections. Adding or removing
+an edge uses indexed lookups; removing a node visits its incident edges.
+`validate()` checks endpoints, port indices, and index consistency in time
+proportional to nodes, edges, and declared ports.
+
+Node identity, ports, edges, and tensor metadata are immutable. Each node has
+separate mutable `attributes` and `visualization` dictionaries. Dictionary
+containers are copied on construction; nested attribute values are not deep-copied.
+This allows future passes to change display metadata without changing graph
+identity or overwriting operation attributes.
+
+### Tensor metadata
+
+| Python value for shape | Meaning | Display with dtype `fp32` |
+| --- | --- | --- |
+| `None` | Shape metadata unavailable | `fp32[unknown]` |
+| `TensorShape(None)` | Dynamic rank | `fp32[...]` |
+| `TensorShape(())` | Scalar | `fp32[]` |
+| `TensorShape((None, 768))` | Known rank, unknown first dimension | `fp32[?, 768]` |
+| `TensorShape((Dimension(1, 8), 768))` | Inclusive dimension interval | `fp32[1..8, 768]` |
+
+Import `Dimension` from `model_graph_viewer` when using intervals. Its default
+upper bound is unbounded, so `Dimension(4)` displays as `4..?`. Unknown dtype is
+represented by `None` and displayed as `?`. Zero-size dimensions are preserved.
+
+The graph API uses only the Python standard library. Importing it does not import
+OpenVINO or Graphviz. Structural errors raise
+`model_graph_viewer.errors.GraphValidationError` before an invalid insertion
+modifies the graph.
+
 ## Planned architecture
 
 ```text
@@ -103,7 +168,7 @@ OpenVINO XML + BIN -> Loader -> Graph -> Transformation pipeline -> Renderer -> 
                                    Highlight / Hide constants
 ```
 
-The graph will own ordinary Python data, with unique node IDs independent of
+The graph owns ordinary Python data, with unique node IDs independent of
 names and edges identifying both source and destination ports. Parsers will be
 the only components aware of model frameworks. Passes will modify the
 visualization graph without modifying the original model. The CLI will call the
@@ -111,7 +176,7 @@ same API available to Python users.
 
 ## Remaining deliverables
 
-- OpenVINO loading, graph representation, highlighting and constant hiding.
+- OpenVINO loading, highlighting and constant hiding.
 - Port-aware SVG rendering and configurable Python API and CLI.
 - Unit and integration tests, including a complete model-to-SVG test.
 - Three reproducible model examples, including TinyLlama-1.1B-Chat-v1.0.
