@@ -11,10 +11,10 @@ checks.
 ## Current status
 
 The package setup, environment check, framework-independent graph API, OpenVINO
-IR loader, transformation pipeline, and node highlighting are implemented and
-tested. Constant hiding and the model-to-SVG command are still in development.
-Stages 1–4 of the implementation plan are complete. The current suite passes
-118 tests, including 36 OpenVINO integration cases. Lint and formatting checks
+IR loader, transformation pipeline, highlighting, and constant hiding are
+implemented and tested. SVG rendering and the model-to-SVG command are still in development.
+Stages 1–5 of the implementation plan are complete. The current suite passes
+143 tests, including 39 OpenVINO integration cases. Lint and formatting checks
 also pass. Earlier setup checks verified the Graphviz SVG backend and installation
 of a built wheel independently of the editable source checkout.
 The original [starter_code.py](starter_code.py) is preserved as a standalone
@@ -225,6 +225,58 @@ Returning a replacement graph from a pass raises `TypeError` because passes use
 the in-place contract. Validation costs one graph traversal per enabled pass,
 and highlighting scans the nodes with a set lookup for each name.
 
+### Hide constant nodes
+
+`HideConstantsPass` replaces outgoing Constant connections with records on their
+consumers. Each record preserves the destination input port, Constant ID, source
+output port, and tensor dtype and shape. The original operation attributes and
+unrelated connections are preserved.
+
+```python
+from model_graph_viewer.loaders.openvino import OpenVINOLoader
+from model_graph_viewer.passes import HideConstantsPass, HighlightPass, Pipeline
+
+graph = OpenVINOLoader().load("models/linear.xml")
+Pipeline([HighlightPass(["matmul"]), HideConstantsPass()]).apply(graph)
+print(f"{len(graph.nodes)} nodes, {len(graph.edges)} edges")  # 4 nodes, 3 edges
+
+for node in graph.nodes.values():
+    for record in node.visualization.get("hidden_constants", {}).values():
+        print(node.name, str(record))
+# matmul [1]: fp32[2, 1]
+# add [1]: fp32[1]
+```
+
+The records are immutable `ConstantInput` objects, available from
+`model_graph_viewer`, under the reserved visualization key `hidden_constants`.
+Its value is a dictionary keyed by destination input port, for example
+`node.visualization["hidden_constants"][1]`. This is separate from
+`node.attributes`, so an existing operation attribute with the same name or
+port label is not overwritten. Record formatting is ready for the renderer;
+SVG display remains part of stage 6.
+
+If a Constant feeds multiple distinct consumer nodes, every record includes the
+same marker, such as `[1]: fp32[2, 1] (shared: 4)`. The marker uses its unique ID,
+not its friendly name. A single operation using the same Constant on two inputs
+receives two records without the shared marker. Consumer counts are computed
+before any edge is removed.
+
+Only the hidden Constant edges are removed. A Constant node is removed only once
+it has no remaining visible connections. A direct Constant-to-Result connection
+leaves the Result node with its input record. Missing metadata, dynamic shapes,
+and scalars retain the same representation as other tensors. Tensor values are
+never read, copied, or displayed by the pass.
+
+Repeated execution does not duplicate records. Existing records on other input
+ports are preserved; incompatible `hidden_constants` data or an already-annotated
+port with a new Constant edge raises `GraphValidationError` before this pass makes
+any changes. Adjacency indexes and metadata snapshots keep work proportional to
+nodes, Constant edges, and existing annotations, without copying the whole graph.
+
+Highlighting composes with hiding in either order. Highlighted consumer nodes
+keep their border metadata; a highlighted Constant is still hidden. Tests verify
+that both serialized model structure and weight bytes remain unchanged.
+
 ### Add a transformation
 
 Implement `apply` with the same contract. Inheritance and registration are not
@@ -330,7 +382,6 @@ same API available to Python users.
 
 ## Remaining deliverables
 
-- Constant hiding with input-port metadata and shared-constant identifiers.
 - Port-aware SVG rendering and configurable Python API and CLI.
 - Unit and integration tests, including a complete model-to-SVG test.
 - Three reproducible model examples, including TinyLlama-1.1B-Chat-v1.0.

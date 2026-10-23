@@ -68,6 +68,27 @@ class TensorMetadata:
         return f"{self.dtype or '?'}{shape}"
 
 
+@dataclass(frozen=True, slots=True)
+class ConstantInput:
+    """Display metadata for a hidden constant connection, without tensor values."""
+
+    input_port: int
+    constant_id: str
+    output_port: int
+    tensor: TensorMetadata
+    shared: bool = False
+
+    def __post_init__(self) -> None:
+        _nonnegative_integer(self.input_port, "Constant destination port")
+        _nonnegative_integer(self.output_port, "Constant source port")
+        if not isinstance(self.constant_id, str) or not self.constant_id:
+            raise GraphValidationError("Constant ID must be a nonempty string.")
+
+    def __str__(self) -> str:
+        shared = f" (shared: {self.constant_id})" if self.shared else ""
+        return f"[{self.input_port}]: {self.tensor}{shared}"
+
+
 def _ports(values: tuple[int, ...], label: str) -> tuple[int, ...]:
     result = tuple(values)
     for value in result:

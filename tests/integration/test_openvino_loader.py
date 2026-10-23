@@ -10,7 +10,7 @@ from openvino import opset13 as ops
 from model_graph_viewer import Dimension, TensorShape
 from model_graph_viewer.errors import ModelLoadError
 from model_graph_viewer.loaders.openvino import OpenVINOLoader
-from model_graph_viewer.passes import HighlightPass, PassStep, Pipeline
+from model_graph_viewer.passes import HideConstantsPass, HighlightPass, PassStep, Pipeline
 
 
 @pytest.fixture
@@ -217,6 +217,57 @@ def test_graph_contains_only_detached_data(linear_model):
     for node in graph.nodes.values():
         check(node.attributes)
         check(node.visualization)
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_hiding_and_highlighting_preserve_original_model_and_weights(
+    linear_model, tmp_path, reverse
+):
+    loader = OpenVINOLoader()
+    model = loader.read_model(write_model(linear_model, tmp_path))
+    before = write_model(model, tmp_path, "before_hiding")
+    graph = loader.parse(model)
+    constants = {
+        node.name: node.node_id for node in graph.nodes.values() if node.op_type == "Constant"
+    }
+    steps = [HighlightPass(["matmul", "weights"]), HideConstantsPass()]
+    Pipeline(reversed(steps) if reverse else steps).apply(graph)
+    assert len(graph.nodes) == 4 and len(graph.edges) == 3
+    nodes = {node.name: node for node in graph.nodes.values()}
+    assert set(nodes) == {"input", "matmul", "add", "output"}
+    assert nodes["matmul"].visualization["border_color"] == "red"
+    weight = nodes["matmul"].visualization["hidden_constants"][1]
+    bias = nodes["add"].visualization["hidden_constants"][1]
+    assert weight.constant_id == constants["weights"]
+    assert bias.constant_id == constants["bias"]
+    assert str(weight) == "[1]: fp32[2, 1]"
+    assert str(bias) == "[1]: fp32[1]"
+    assert nodes["matmul"].attributes == {"transpose_a": False, "transpose_b": False}
+    assert {
+        (graph.nodes[e.from_node].name, e.from_port, graph.nodes[e.to_node].name, e.to_port)
+        for e in graph.edges.values()
+    } == {("input", 0, "matmul", 0), ("matmul", 0, "add", 0), ("add", 0, "output", 0)}
+    after = write_model(model, tmp_path, "after_hiding")
+    assert before.read_bytes() == after.read_bytes()
+    assert before.with_suffix(".bin").read_bytes() == after.with_suffix(".bin").read_bytes()
+
+
+def test_shared_constant_in_real_model_marks_all_consumer_ports(tmp_path):
+    x = ops.parameter([2], ov.Type.f32, name="input")
+    shared = ops.constant(np.array([1, 2], dtype=np.float32), name="weights")
+    add = ops.add(x, shared, name="add")
+    multiply = ops.multiply(shared, x, name="multiply")
+    graph = OpenVINOLoader().load(write_model(ov.Model([add, multiply], [x]), tmp_path))
+    constant_id = next(n.node_id for n in graph.nodes.values() if n.op_type == "Constant")
+    Pipeline([HideConstantsPass()]).apply(graph)
+    nodes = {node.name: node for node in graph.nodes.values()}
+    for name, port in (("add", 1), ("multiply", 0)):
+        record = nodes[name].visualization["hidden_constants"][port]
+        assert record.constant_id == constant_id
+        assert record.shared
+        assert str(record) == f"[{port}]: fp32[2] (shared: {constant_id})"
+    assert not any(n.op_type == "Constant" for n in graph.nodes.values())
+    assert len(graph.edges) == 4
 
 
 def test_vector_attributes_and_unused_parameter_ports_are_preserved():
