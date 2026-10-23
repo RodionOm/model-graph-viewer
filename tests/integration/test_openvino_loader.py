@@ -10,6 +10,7 @@ from openvino import opset13 as ops
 from model_graph_viewer import Dimension, TensorShape
 from model_graph_viewer.errors import ModelLoadError
 from model_graph_viewer.loaders.openvino import OpenVINOLoader
+from model_graph_viewer.passes import HighlightPass, PassStep, Pipeline
 
 
 @pytest.fixture
@@ -171,6 +172,30 @@ def test_parse_and_graph_changes_leave_original_model_unchanged(linear_model, tm
         node.visualization["border_color"] = "red"
     graph.remove_node(next(iter(graph.nodes)))
     after = write_model(linear_model, tmp_path, "after")
+    assert before.read_bytes() == after.read_bytes()
+    assert before.with_suffix(".bin").read_bytes() == after.with_suffix(".bin").read_bytes()
+
+
+def test_loader_and_pipeline_highlight_without_changing_model(linear_model, tmp_path):
+    loader = OpenVINOLoader()
+    model = loader.read_model(write_model(linear_model, tmp_path))
+    before = write_model(model, tmp_path, "before_pipeline")
+    graph = loader.parse(model)
+    result = Pipeline(
+        [
+            HighlightPass(["matmul", "weights"]),
+            PassStep(HighlightPass(["add"]), enabled=False),
+        ]
+    ).apply(graph)
+    assert result is graph
+    assert len(graph.nodes) == 6 and len(graph.edges) == 5
+    highlighted = {
+        node.name
+        for node in graph.nodes.values()
+        if node.visualization.get("border_color") == "red"
+    }
+    assert highlighted == {"matmul", "weights"}
+    after = write_model(model, tmp_path, "after_pipeline")
     assert before.read_bytes() == after.read_bytes()
     assert before.with_suffix(".bin").read_bytes() == after.with_suffix(".bin").read_bytes()
 

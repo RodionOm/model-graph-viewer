@@ -10,11 +10,11 @@ checks.
 
 ## Current status
 
-The package setup, environment check, framework-independent graph API, and
-OpenVINO IR loader are implemented and tested. Transformation passes and the
-model-to-SVG command are still in development.
-Stages 1–3 of the implementation plan are complete. The current suite passes
-88 tests, including 35 OpenVINO integration cases. Lint and formatting checks
+The package setup, environment check, framework-independent graph API, OpenVINO
+IR loader, transformation pipeline, and node highlighting are implemented and
+tested. Constant hiding and the model-to-SVG command are still in development.
+Stages 1–4 of the implementation plan are complete. The current suite passes
+118 tests, including 36 OpenVINO integration cases. Lint and formatting checks
 also pass. Earlier setup checks verified the Graphviz SVG backend and installation
 of a built wheel independently of the editable source checkout.
 The original [starter_code.py](starter_code.py) is preserved as a standalone
@@ -176,7 +176,76 @@ missing files, invalid XML, and invalid weight files raise
   not represented.
 - Only OpenVINO IR is accepted. A new format can implement
   `model_graph_viewer.loaders.ModelLoader.load(path) -> Graph` without changing
-  the graph representation or future passes and renderers.
+  the graph representation, transformation passes, or future renderers.
+
+## Apply visualization transformations
+
+Passes operate on the independent graph. They modify it in place, without copying
+the whole graph or touching the original OpenVINO model. Each pass implements
+`apply(graph) -> None`; `Pipeline.apply(graph)` returns the same graph for convenience.
+
+```python
+from model_graph_viewer.loaders.openvino import OpenVINOLoader
+from model_graph_viewer.passes import HighlightPass, PassStep, Pipeline
+
+graph = OpenVINOLoader().load("models/linear.xml")
+pipeline = Pipeline([
+    HighlightPass(["matmul", "weights"]),
+    PassStep(HighlightPass(["add"]), enabled=False),
+])
+pipeline.apply(graph)
+
+for node in graph.nodes.values():
+    if node.visualization.get("border_color") == "red":
+        print(node.name)  # weights and matmul
+```
+
+`HighlightPass` matches complete, case-sensitive node names. It highlights every
+matching node, including duplicate names. Spaces, commas, and Unicode characters
+are literal; names are not split or treated as patterns. Unknown names and empty
+selections leave the graph unchanged. Pass a collection of names such as
+`["matmul"]`, not a bare string.
+
+Highlighting sets `node.visualization["border_color"] = "red"`. It preserves all
+other visualization metadata, operation attributes, ports, and connections.
+Repeated highlighting is safe, and selecting more names later does not clear
+previous highlights. The SVG renderer will consume this metadata in stage 6;
+this stage does not yet draw the red borders.
+
+Passes run in the order supplied. Plain pass objects are enabled; wrap any pass in
+`PassStep(..., enabled=False)` to skip it without changing its implementation.
+`Pipeline()` applies no transformations. Repeated entries are executed repeatedly,
+and the pipeline snapshots the supplied sequence so generators can also be used.
+
+The pipeline validates the graph initially and after each enabled pass. An invalid
+graph stops execution with `GraphValidationError`, including the failing pass's
+position and class when applicable. Unexpected programming errors propagate.
+Completed changes are not rolled back on failure; reload the model to start over.
+Returning a replacement graph from a pass raises `TypeError` because passes use
+the in-place contract. Validation costs one graph traversal per enabled pass,
+and highlighting scans the nodes with a set lookup for each name.
+
+### Add a transformation
+
+Implement `apply` with the same contract. Inheritance and registration are not
+required; the `TransformationPass` protocol describes this interface for type
+checking. For example:
+
+```python
+from model_graph_viewer import Graph
+
+
+class MarkOutputs:
+    def apply(self, graph: Graph) -> None:
+        for node in graph.nodes.values():
+            if node.op_type == "Result":
+                node.visualization["border_color"] = "blue"
+```
+
+Pass `MarkOutputs()` to `Pipeline` like a built-in pass. A following `HighlightPass`
+can change the selected output borders to red. Adding this pass requires no changes
+to the loader or graph representation. Graph and pass imports do not load OpenVINO
+or Graphviz.
 
 ## Graph API
 
@@ -255,13 +324,13 @@ OpenVINO XML + BIN -> Loader -> Graph -> Transformation pipeline -> Renderer -> 
 
 The graph owns ordinary Python data, with unique node IDs independent of
 names and edges identifying both source and destination ports. The OpenVINO
-loader is isolated from this representation. Passes will modify the
+loader is isolated from this representation. Passes modify the
 visualization graph without modifying the original model. The CLI will call the
 same API available to Python users.
 
 ## Remaining deliverables
 
-- Highlighting, constant hiding, and the configurable transformation pipeline.
+- Constant hiding with input-port metadata and shared-constant identifiers.
 - Port-aware SVG rendering and configurable Python API and CLI.
 - Unit and integration tests, including a complete model-to-SVG test.
 - Three reproducible model examples, including TinyLlama-1.1B-Chat-v1.0.
