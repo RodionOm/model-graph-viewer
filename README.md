@@ -10,13 +10,13 @@ checks.
 
 ## Current status
 
-The package setup, environment check, and framework-independent graph API are
-implemented and tested. Model loading, transformation passes, and the model-to-SVG
-command are still in development.
-The pre-loader review on 23 October 2026 passed 53 tests, lint and formatting
-checks, dependency checks, the README graph example, and the Graphviz SVG setup
-check. A built wheel was also installed in a separate environment to verify the
-graph API and CLI entry points independently of the editable source checkout.
+The package setup, environment check, framework-independent graph API, and
+OpenVINO IR loader are implemented and tested. Transformation passes and the
+model-to-SVG command are still in development.
+Stages 1–3 of the implementation plan are complete. The current suite passes
+88 tests, including 35 OpenVINO integration cases. Lint and formatting checks
+also pass. Earlier setup checks verified the Graphviz SVG backend and installation
+of a built wheel independently of the editable source checkout.
 The original [starter_code.py](starter_code.py) is preserved as a standalone
 Graphviz example.
 
@@ -86,8 +86,8 @@ Run the following with the virtual environment's Python:
 
 ```sh
 python -m pytest
-python -m ruff check src tests
-python -m ruff format --check src tests
+python -m ruff check src tests scripts
+python -m ruff format --check src tests scripts
 ```
 
 The `dev` extra contains test and lint tools. The separate `export` extra is
@@ -98,6 +98,85 @@ and checked when the model examples are implemented.
 Each completed implementation stage is tested, committed separately, and pushed
 to this repository. Generated local models, virtual environments, and temporary
 artifacts are excluded from Git.
+
+The integration tests generate small XML/BIN models in pytest's temporary
+directory. They require OpenVINO but do not download models or require Graphviz,
+a GPU, or model compilation. Run only the framework-independent tests with
+`python -m pytest tests/unit`, or the loader tests with
+`python -m pytest tests/integration/test_openvino_loader.py`.
+
+## Load a real OpenVINO model
+
+Generate a small model with fixed fp32 weights. This is a real, executable
+OpenVINO model of `y = x @ W + b`, created for testing rather than trained on data.
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\python scripts/create_example_models.py --output-dir models
+```
+
+Linux or macOS:
+
+```sh
+.venv/bin/python scripts/create_example_models.py --output-dir models
+```
+
+The script writes `models/linear.xml` and `models/linear.bin`. It can be rerun to
+regenerate the example; these generated files are ignored by Git. Its weights are
+`W = [[0.5], [1.0]]` and `b = [1.0]`. With input `[[2, 3]]`, the output is `[[5.0]]`,
+which has also been checked with OpenVINO CPU inference.
+
+Use the loader from Python:
+
+```python
+from model_graph_viewer.loaders.openvino import OpenVINOLoader
+
+loader = OpenVINOLoader()
+graph = loader.load("models/linear.xml")
+print(f"{len(graph.nodes)} nodes, {len(graph.edges)} edges")  # 6 nodes, 5 edges
+
+for node in graph.nodes.values():
+    print(node.node_id, node.name, node.op_type)
+```
+
+The operations are `Parameter`, two `Constant` nodes, `MatMul`, `Add`, and `Result`.
+Weights remain in the model: the intermediate graph contains only their shape
+and dtype. SVG export of this graph will be added in the rendering stage.
+
+`loader.read_model(path)` returns an OpenVINO model; `loader.parse(model)` converts
+an existing model to our graph. `load(path)` combines these steps. Reading uses
+[OpenVINO Core.read_model](https://docs.openvino.ai/2025/api/ie_python_api/_autosummary/openvino.Core.html)
+without compiling, reshaping, or optimizing the model.
+
+By default, the loader looks for a `.bin` next to the `.xml` with the same stem.
+A model without weights can omit the `.bin`. To select a different weights file,
+use `loader.load("model.xml", weights_path="weights.bin")`. Unsupported extensions,
+missing files, invalid XML, and invalid weight files raise
+`model_graph_viewer.errors.ModelLoadError` with the affected path and a reason.
+
+### Loader guarantees and limits
+
+- IDs are assigned from OpenVINO's ordered operations, independently of friendly
+  names. Re-reading the same IR with the same runtime is tested to preserve IDs;
+  IDs are not promised to survive model edits or OpenVINO version changes.
+- All visible input/output port indices, fan-out, parallel connections, and model
+  inputs and outputs are retained. Declared ports survive even without connections.
+- Scalar shapes, dynamic rank, dynamic dimensions, and dimension intervals are
+  represented separately. Unresolved element types become `None`; f16, f32, and
+  f64 are displayed as fp16, fp32, and fp64. Other type names are preserved.
+- Operation attributes are detached as ordinary Python values. Unknown non-scalar
+  attribute objects receive a descriptive placeholder instead of retaining a
+  framework object or reading a tensor. Constant values are never requested.
+- Modifying the resulting graph does not modify the input model. Tests compare
+  both serialized model structure and weight bytes before and after graph edits.
+- `If`, `Loop`, and `TensorIterator` are represented by their outer nodes and ports,
+  with a note in visualization metadata. Nested bodies are not expanded. Dimension
+  bounds are retained, but symbolic equality relationships between dimensions are
+  not represented.
+- Only OpenVINO IR is accepted. A new format can implement
+  `model_graph_viewer.loaders.ModelLoader.load(path) -> Graph` without changing
+  the graph representation or future passes and renderers.
 
 ## Graph API
 
@@ -175,14 +254,14 @@ OpenVINO XML + BIN -> Loader -> Graph -> Transformation pipeline -> Renderer -> 
 ```
 
 The graph owns ordinary Python data, with unique node IDs independent of
-names and edges identifying both source and destination ports. Parsers will be
-the only components aware of model frameworks. Passes will modify the
+names and edges identifying both source and destination ports. The OpenVINO
+loader is isolated from this representation. Passes will modify the
 visualization graph without modifying the original model. The CLI will call the
 same API available to Python users.
 
 ## Remaining deliverables
 
-- OpenVINO loading, highlighting and constant hiding.
+- Highlighting, constant hiding, and the configurable transformation pipeline.
 - Port-aware SVG rendering and configurable Python API and CLI.
 - Unit and integration tests, including a complete model-to-SVG test.
 - Three reproducible model examples, including TinyLlama-1.1B-Chat-v1.0.

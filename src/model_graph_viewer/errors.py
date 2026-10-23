@@ -11,3 +11,7 @@ class EnvironmentCheckError(ViewerError):
 
 class GraphValidationError(ViewerError):
     """A graph operation would violate its structural invariants."""
+
+
+class ModelLoadError(ViewerError):
+    """A model file cannot be read or converted to the intermediate graph."""
