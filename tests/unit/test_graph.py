@@ -55,6 +55,17 @@ def test_edge_removal_preserves_ports_and_unrelated_connections():
     assert graph.incoming("b") == (Edge("s", 0, "b", 0),)
 
 
+@pytest.mark.parametrize("port", [False, True, 0.0, 1.0, -1, "0", None, []])
+def test_invalid_removal_port_does_not_delete_an_existing_edge(port):
+    graph = branching_graph()
+    graph.add_edge(Edge("s", 0, "a", 1))
+    before = dict(graph.edges)
+    with pytest.raises(GraphValidationError, match="nonnegative integer"):
+        graph.remove_edge("a", port)
+    assert dict(graph.edges) == before
+    graph.validate()
+
+
 def test_remove_node_cleans_both_indexes_and_preserves_other_nodes():
     graph = branching_graph()
     graph.add_edge(Edge("a", 0, "s", 0))

@@ -13,6 +13,10 @@ checks.
 The package setup, environment check, and framework-independent graph API are
 implemented and tested. Model loading, transformation passes, and the model-to-SVG
 command are still in development.
+The pre-loader review on 23 October 2026 passed 53 tests, lint and formatting
+checks, dependency checks, the README graph example, and the Graphviz SVG setup
+check. A built wheel was also installed in a separate environment to verify the
+graph API and CLI entry points independently of the editable source checkout.
 The original [starter_code.py](starter_code.py) is preserved as a standalone
 Graphviz example.
 
@@ -128,6 +132,8 @@ Port numbers are explicit and need not be contiguous.
 Use `add_node`, `add_edge`, `remove_edge(destination_id, input_port)`, and
 `remove_node` to change structure. Removing a node also removes its incident
 edges; removing an edge preserves the declared ports.
+Port arguments must be nonnegative integers; booleans and floating-point values
+are rejected on both edge creation and removal without changing the graph.
 
 `incoming` and `outgoing` return snapshots of local connections. Adding or removing
 an edge uses indexed lookups; removing a node visits its incident edges.

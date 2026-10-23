@@ -192,6 +192,7 @@ class Graph:
         return tuple(self._edges[key] for key in self._outgoing[node_id])
 
     def remove_edge(self, to_node: str, to_port: int) -> Edge:
+        _nonnegative_integer(to_port, "Destination port")
         key = (to_node, to_port)
         if key not in self._edges:
             raise GraphValidationError(f"No edge enters node {to_node!r} at port {to_port}.")
