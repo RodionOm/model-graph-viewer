@@ -15,3 +15,7 @@ class GraphValidationError(ViewerError):
 
 class ModelLoadError(ViewerError):
     """A model file cannot be read or converted to the intermediate graph."""
+
+
+class RenderError(ViewerError):
+    """A graph cannot be rendered or its output cannot be saved."""

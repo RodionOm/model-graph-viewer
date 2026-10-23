@@ -1,4 +1,4 @@
-"""Create a deterministic, untrained linear model for inspecting the loader."""
+"""Create deterministic, untrained OpenVINO models for graph inspection."""
 
 import argparse
 from pathlib import Path
@@ -18,15 +18,32 @@ def create_linear_model() -> ov.Model:
     return ov.Model([result], [x], "linear_example")
 
 
+def create_branching_model() -> ov.Model:
+    """Split, parallel connections, a shared constant and two model outputs."""
+    x = ops.parameter([2, 4], ov.Type.f32, name="input")
+    axis = ops.constant(np.int64(1), name="axis")
+    split = ops.split(x, axis, 2, name="split")
+    shared = ops.constant(np.array([1, 2], dtype=np.float32), name="shared")
+    merge = ops.add(split.output(0), split.output(1), name="merge")
+    left = ops.add(merge, shared, name="left")
+    right = ops.add(split.output(1), shared, name="right")
+    return ov.Model(
+        [ops.result(left, name="left_output"), ops.result(right, name="right_output")],
+        [x],
+        "branching_example",
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=Path("models"))
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    path = args.output_dir / "linear.xml"
-    # serialize preserves the declared fp32 weights and operation structure.
-    ov.serialize(create_linear_model(), path)
-    print(f"Created {path} and {path.with_suffix('.bin')}")
+    for name, model in [("linear", create_linear_model()), ("branching", create_branching_model())]:
+        path = args.output_dir / f"{name}.xml"
+        # serialize preserves the declared weights and operation structure.
+        ov.serialize(model, path)
+        print(f"Created {path} and {path.with_suffix('.bin')}")
 
 
 if __name__ == "__main__":

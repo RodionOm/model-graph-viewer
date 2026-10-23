@@ -1,7 +1,7 @@
 # Model Graph Viewer
 
 A Python library and command-line tool for inspecting neural network computational
-graphs. The planned pipeline loads an OpenVINO IR model, builds a framework-independent
+graphs. The pipeline loads an OpenVINO IR model, builds a framework-independent
 graph, applies ordered visualization passes, and exports an SVG.
 
 Development follows the requirements in [assignment.pdf](assignment.pdf).
@@ -12,9 +12,10 @@ checks.
 
 The package setup, environment check, framework-independent graph API, OpenVINO
 IR loader, transformation pipeline, highlighting, and constant hiding are
-implemented and tested. SVG rendering and the model-to-SVG command are still in development.
-Stages 1–5 of the implementation plan are complete. The current suite passes
-143 tests, including 39 OpenVINO integration cases. Lint and formatting checks
+implemented and tested, together with port-aware SVG rendering. The convenience
+API and model-to-SVG command are the next stage.
+Stages 1–6 of the implementation plan are complete. The current suite passes
+178 tests, including real OpenVINO-to-SVG integration cases. Lint and formatting checks
 also pass. Earlier setup checks verified the Graphviz SVG backend and installation
 of a built wheel independently of the editable source checkout.
 The original [starter_code.py](starter_code.py) is preserved as a standalone
@@ -100,8 +101,9 @@ to this repository. Generated local models, virtual environments, and temporary
 artifacts are excluded from Git.
 
 The integration tests generate small XML/BIN models in pytest's temporary
-directory. They require OpenVINO but do not download models or require Graphviz,
-a GPU, or model compilation. Run only the framework-independent tests with
+directory. They require OpenVINO; SVG integration tests also require native
+Graphviz on `PATH`. They do not download models or require a GPU or model
+compilation. Run only the tests without native Graphviz or OpenVINO with
 `python -m pytest tests/unit`, or the loader tests with
 `python -m pytest tests/integration/test_openvino_loader.py`.
 
@@ -122,7 +124,8 @@ Linux or macOS:
 .venv/bin/python scripts/create_example_models.py --output-dir models
 ```
 
-The script writes `models/linear.xml` and `models/linear.bin`. It can be rerun to
+The script writes `models/linear.xml` and `models/linear.bin`, plus a branching
+model in `models/branching.xml` and `.bin`. It can be rerun to
 regenerate the example; these generated files are ignored by Git. Its weights are
 `W = [[0.5], [1.0]]` and `b = [1.0]`. With input `[[2, 3]]`, the output is `[[5.0]]`,
 which has also been checked with OpenVINO CPU inference.
@@ -142,7 +145,7 @@ for node in graph.nodes.values():
 
 The operations are `Parameter`, two `Constant` nodes, `MatMul`, `Add`, and `Result`.
 Weights remain in the model: the intermediate graph contains only their shape
-and dtype. SVG export of this graph will be added in the rendering stage.
+and dtype. Render this graph with the API described below.
 
 `loader.read_model(path)` returns an OpenVINO model; `loader.parse(model)` converts
 an existing model to our graph. `load(path)` combines these steps. Reading uses
@@ -176,7 +179,7 @@ missing files, invalid XML, and invalid weight files raise
   not represented.
 - Only OpenVINO IR is accepted. A new format can implement
   `model_graph_viewer.loaders.ModelLoader.load(path) -> Graph` without changing
-  the graph representation, transformation passes, or future renderers.
+  the graph representation, transformation passes, or renderer.
 
 ## Apply visualization transformations
 
@@ -209,8 +212,8 @@ selections leave the graph unchanged. Pass a collection of names such as
 Highlighting sets `node.visualization["border_color"] = "red"`. It preserves all
 other visualization metadata, operation attributes, ports, and connections.
 Repeated highlighting is safe, and selecting more names later does not clear
-previous highlights. The SVG renderer will consume this metadata in stage 6;
-this stage does not yet draw the red borders.
+previous highlights. The SVG renderer uses this metadata to draw red borders
+while preserving the node fill color.
 
 Passes run in the order supplied. Plain pass objects are enabled; wrap any pass in
 `PassStep(..., enabled=False)` to skip it without changing its implementation.
@@ -252,8 +255,8 @@ The records are immutable `ConstantInput` objects, available from
 Its value is a dictionary keyed by destination input port, for example
 `node.visualization["hidden_constants"][1]`. This is separate from
 `node.attributes`, so an existing operation attribute with the same name or
-port label is not overwritten. Record formatting is ready for the renderer;
-SVG display remains part of stage 6.
+port label is not overwritten. The renderer shows each record as a separate
+line inside the consumer node.
 
 If a Constant feeds multiple distinct consumer nodes, every record includes the
 same marker, such as `[1]: fp32[2, 1] (shared: 4)`. The marker uses its unique ID,
@@ -298,6 +301,79 @@ Pass `MarkOutputs()` to `Pipeline` like a built-in pass. A following `HighlightP
 can change the selected output borders to red. Adding this pass requires no changes
 to the loader or graph representation. Graph and pass imports do not load OpenVINO
 or Graphviz.
+
+## Render SVG
+
+The renderer accepts the independent graph, including graphs created without
+OpenVINO. With native Graphviz on `PATH`:
+
+```python
+from model_graph_viewer.loaders.openvino import OpenVINOLoader
+from model_graph_viewer.passes import HideConstantsPass, HighlightPass, Pipeline
+from model_graph_viewer.renderers import GraphvizRenderer
+
+graph = OpenVINOLoader().load("models/linear.xml")
+renderer = GraphvizRenderer()
+renderer.render(graph, "artifacts/linear_before.svg")
+Pipeline([HighlightPass(["matmul"]), HideConstantsPass()]).apply(graph)
+output = renderer.render(graph, "artifacts/linear_after.svg")
+print(output)
+```
+
+`render(graph, path)` creates parent directories and returns the output `Path`.
+`render_svg(graph)` returns SVG bytes without writing a file. `to_dot(graph)`
+returns a Python `graphviz.Digraph` for inspection without invoking native `dot`.
+None of these methods changes the graph or imports OpenVINO.
+
+Nodes show their operation type, name, ID, operation attributes, input/output
+ports, and hidden-constant records. Edges connect explicit ports and show both
+port numbers and tensor metadata. Layout runs from top to bottom. Unknown
+operation types use a neutral fill; a pass can set `visualization["fillcolor"]`,
+`["border_color"]`, or `["note"]`. An empty graph produces an empty SVG canvas;
+an isolated node renders normally.
+
+Ordinary node fields are shortened to 120 characters by default; set
+`GraphvizRenderer(max_label_length=200)` to change this. Original graph data and
+complete port/tensor records are retained. Containers are formatted with bounded
+depth and length, opaque attribute objects use type placeholders, and Constant
+nodes show only dtype/shape metadata. Tensor values are not displayed. Label text
+is escaped, including Graphviz backslash substitutions; XML-invalid control
+characters are replaced with the Unicode replacement character.
+
+Missing `dot`, a failed layout, invalid SVG output, and write failures raise
+`model_graph_viewer.errors.RenderError`. An optional `timeout=60` limits the
+native layout process to 60 seconds; the default has no time limit. A file is
+replaced atomically only after valid SVG has been produced, so a failed render
+preserves the existing output. Graphviz warnings are sent to Python logging.
+Exact coordinates and font metrics can vary by Graphviz version and system fonts.
+
+### View and reproduce examples
+
+Four checked SVGs are committed in [examples/svg](examples/svg):
+
+| Model | Before | After highlighting and constant hiding |
+| --- | --- | --- |
+| Linear: 6 → 4 nodes, 5 → 3 edges | [Before](examples/svg/linear_before.svg) | [After](examples/svg/linear_after.svg) |
+| Branching: 9 → 7 nodes, 10 → 7 edges | [Before](examples/svg/branching_before.svg) | [After](examples/svg/branching_after.svg) |
+
+The branching example has two Split outputs, parallel connections into an Add,
+a Constant shared between two consumers, and two model outputs. Both examples
+are deterministic, untrained OpenVINO models.
+
+Generate the models and all four SVGs (with the virtual environment active and
+`dot` on `PATH`; these commands work in PowerShell and POSIX shells):
+
+```sh
+python scripts/create_example_models.py --output-dir models
+python scripts/render_examples.py --model-dir models --output-dir examples/svg
+```
+
+Open SVG files in Edge, Chrome, or Firefox. If the editor displays XML text, drag
+the file into a browser window. In Windows PowerShell, you can also run:
+
+```powershell
+Start-Process msedge (Resolve-Path examples/svg/linear_after.svg).Path
+```
 
 ## Graph API
 
@@ -365,7 +441,7 @@ OpenVINO or Graphviz. Structural errors raise
 `model_graph_viewer.errors.GraphValidationError` before an invalid insertion
 modifies the graph.
 
-## Planned architecture
+## Architecture
 
 ```text
 OpenVINO XML + BIN -> Loader -> Graph -> Transformation pipeline -> Renderer -> SVG
@@ -382,11 +458,11 @@ same API available to Python users.
 
 ## Remaining deliverables
 
-- Port-aware SVG rendering and configurable Python API and CLI.
-- Unit and integration tests, including a complete model-to-SVG test.
+- Convenience Python API and configurable model-to-SVG CLI, with matching tests.
 - Three reproducible model examples, including TinyLlama-1.1B-Chat-v1.0.
 - Before-and-after SVGs and measured performance, including graphs of 5000+ nodes.
 - Final API documentation, extension examples, and known limitations.
 
-Benchmark results and completed model visualizations will be added after they
-have actually been produced and verified.
+Large-model SVGs and benchmark results will be added after they have actually
+been produced and verified. The current small examples do not establish
+performance on TinyLlama or graphs of 5000+ nodes.
