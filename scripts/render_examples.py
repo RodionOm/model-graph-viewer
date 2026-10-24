@@ -14,7 +14,7 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, default=Path("examples/svg"))
     args = parser.parse_args()
     renderer = GraphvizRenderer()
-    for name, highlight in [("linear", "matmul"), ("branching", "split")]:
+    for name, highlight in [("linear", "matmul"), ("branching", "split"), ("mlp", "dense1")]:
         graph = OpenVINOLoader().load(args.model_dir / f"{name}.xml")
         before = (len(graph.nodes), len(graph.edges))
         renderer.render(graph, args.output_dir / f"{name}_before.svg")

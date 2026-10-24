@@ -14,8 +14,8 @@ The package setup, environment check, framework-independent graph API, OpenVINO
 IR loader, transformation pipeline, highlighting, and constant hiding are
 implemented and tested, together with port-aware SVG rendering, a public Python
 API, and the model-to-SVG CLI.
-Stages 1–7 of the implementation plan are complete. The current suite passes
-247 tests, including real OpenVINO-to-SVG and API/CLI integration cases. Lint and formatting checks
+Stages 1–8 of the implementation plan are complete. The current suite passes
+250 tests, including real OpenVINO-to-SVG and API/CLI integration cases. Lint and formatting checks
 also pass. Earlier setup checks verified the Graphviz SVG backend and installation
 of a built wheel independently of the editable source checkout.
 The original [starter_code.py](starter_code.py) is preserved as a standalone
@@ -92,9 +92,9 @@ python -m ruff format --check src tests scripts
 ```
 
 The `dev` extra contains test and lint tools. The separate `export` extra is
-reserved for exporting large models with Optimum Intel; it is not required for
-unit tests or graph inspection. The TinyLlama export procedure will be documented
-and checked when the model examples are implemented.
+optional for users exporting their own models with Optimum Intel; it is not needed
+for the checked examples. TinyLlama is downloaded as a pinned, pre-exported IR
+using the standard-library script below. No PyTorch/export stack is required.
 
 Each completed implementation stage is tested, committed separately, and pushed
 to this repository. Generated local models, virtual environments, and temporary
@@ -125,7 +125,8 @@ Linux or macOS:
 ```
 
 The script writes `models/linear.xml` and `models/linear.bin`, plus a branching
-model in `models/branching.xml` and `.bin`. It can be rerun to
+model in `models/branching.xml` and `.bin`, and a two-layer MLP in `models/mlp.xml`
+and `.bin`. It can be rerun to
 regenerate the example; these generated files are ignored by Git. Its weights are
 `W = [[0.5], [1.0]]` and `b = [1.0]`. With input `[[2, 3]]`, the output is `[[5.0]]`,
 which has also been checked with OpenVINO CPU inference.
@@ -172,6 +173,8 @@ With the virtual environment active, `model-graph-viewer` is equivalent to
 - `--weights path/to/weights.bin` selects weights separately from the XML.
 - `--max-label-length 200` changes ordinary node field truncation (minimum 8).
   `--timeout 60` limits Graphviz layout to 60 seconds (positive, finite values).
+- `--layout fast` bounds Graphviz optimization and uses straight edges for large
+  graphs. The default uses Graphviz's normal optimization and curved routing.
 - `--check-environment` runs the setup check separately and cannot be combined
   with rendering options. `--help`, `--version`, and a no-argument help invocation
   do not need the backend packages or native Graphviz.
@@ -199,7 +202,7 @@ print(output)  # pathlib.Path
 ```
 
 `visualize(model_path, output_path, *, passes=(), weights_path=None, loader=None,
-max_label_length=120, timeout=None)` applies no transformations by default.
+max_label_length=120, timeout=None, layout="default")` applies no transformations by default.
 Pass objects, custom passes, `PassStep` objects, and generators are supported.
 Steps execute in order, including repeats. Source model files are never changed.
 
@@ -219,7 +222,7 @@ render_graph(graph, "artifacts/api_separate.svg", timeout=60)
 ```
 
 `load_graph` accepts optional `weights_path` or a configured `loader` instance; `render_graph` accepts
-`max_label_length` and `timeout`, as above. `apply_passes` changes the supplied
+`max_label_length`, `timeout`, and `layout`, as above. `apply_passes` changes the supplied
 graph in place and returns it. It validates the graph even for an empty pass
 sequence. `render_graph` returns the output `Path` and does not modify the graph.
 Imports from `model_graph_viewer` do not import OpenVINO or Graphviz; each backend
@@ -508,20 +511,33 @@ replaced atomically only after valid SVG has been produced, so a failed render
 preserves the existing output. Graphviz warnings are sent to Python logging.
 Exact coordinates and font metrics can vary by Graphviz version and system fonts.
 
+`GraphvizRenderer(layout="fast")` retains every node, port, connection and label,
+while setting `nslimit=0.5`, `nslimit1=0.5`, `mclimit=0.25`, and `splines=line`.
+These limit optimization effort and avoid costly spline routing; they are not a
+wall-clock guarantee. Straight edges can cross nodes and labels. Use normal
+layout for small graphs and the fast mode when a full large graph is needed.
+See Graphviz's [iteration limits](https://graphviz.org/docs/attrs/nslimit/),
+[rank optimization](https://graphviz.org/docs/attrs/nslimit1/),
+[crossing minimization](https://graphviz.org/docs/attrs/mclimit/), and
+[edge routing](https://graphviz.org/docs/attrs/splines/) documentation.
+
 ### View and reproduce examples
 
-Four checked SVGs are committed in [examples/svg](examples/svg):
+Eight checked SVGs are committed in [examples/svg](examples/svg):
 
 | Model | Before | After highlighting and constant hiding |
 | --- | --- | --- |
 | Linear: 6 → 4 nodes, 5 → 3 edges | [Before](examples/svg/linear_before.svg) | [After](examples/svg/linear_after.svg) |
 | Branching: 9 → 7 nodes, 10 → 7 edges | [Before](examples/svg/branching_before.svg) | [After](examples/svg/branching_after.svg) |
+| MLP: 11 → 7 nodes, 10 → 6 edges | [Before](examples/svg/mlp_before.svg) | [After](examples/svg/mlp_after.svg) |
+| TinyLlama: 3216 → 1957 nodes, 3789 → 2477 edges | [Before](examples/svg/tinyllama_before.svg) | [After](examples/svg/tinyllama_after.svg) |
 
 The branching example has two Split outputs, parallel connections into an Add,
 a Constant shared between two consumers, and two model outputs. Both examples
-are deterministic, untrained OpenVINO models.
+are deterministic, untrained OpenVINO models. The MLP is a fixed-weight 4 → 3 → 2
+network with ReLU. TinyLlama is a real pretrained 1.1B-parameter language model.
 
-Generate the models and all four SVGs (with the virtual environment active and
+Generate the three small models and their six SVGs (with the virtual environment active and
 `dot` on `PATH`; these commands work in PowerShell and POSIX shells):
 
 ```sh
@@ -535,6 +551,37 @@ the file into a browser window. In Windows PowerShell, you can also run:
 ```powershell
 Start-Process msedge (Resolve-Path examples/svg/linear_after.svg).Path
 ```
+
+### TinyLlama reproduction
+
+The large example uses [OpenVINO's fp16 TinyLlama IR](https://huggingface.co/OpenVINO/TinyLlama-1.1B-Chat-v1.0-fp16-ov),
+converted from `TinyLlama/TinyLlama-1.1B-Chat-v1.0`, at revision
+`88a9e6bbe7f9f8cf4e61ac96eed57ec164ad46f5`. The assignment allows downloading
+already exported models. The script downloads 2.20 GB of weights plus XML/config
+and the source model card; it verifies sizes and SHA256 against
+[tinyllama-source.json](examples/tinyllama-source.json). Already verified files
+are reused. Model files remain in the ignored `models/` directory.
+
+With the virtual environment active and Graphviz on `PATH`, these single-line
+commands work in PowerShell and POSIX shells:
+
+```sh
+python scripts/download_tinyllama.py
+python -m model_graph_viewer --model models/tinyllama/openvino_model.xml --output examples/svg/tinyllama_before.svg --layout fast --timeout 180
+python -m model_graph_viewer --model models/tinyllama/openvino_model.xml --output examples/svg/tinyllama_after.svg --layout fast --timeout 180 --passes highlight,hide-constants --highlight-node "__module.model.layers.0.self_attn.q_proj/ov_ext::linear/MatMul"
+```
+
+The model's IR metadata records OpenVINO `2026.0.0-20961-f08e8b36350`,
+Optimum Intel `1.27.0.dev0+2c48d64`, Optimum `2.1.0.dev0`, PyTorch `2.10.0+cpu`,
+and Transformers `4.57.6`. These describe the upstream export, not dependencies
+needed to visualize it. Our checked runtime is OpenVINO 2026.4.1. We reproduce
+the downloaded IR, not the upstream export environment.
+
+The graph contains 1259 Constants, 433 Converts, 44 ReadValues, 44 Assigns and
+22 ScaledDotProductAttention nodes, among other operations. After hiding
+Constants, Convert nodes remain. Both SVGs have been parsed to verify every
+expected node/edge and reviewed in Edge at a selected projection. The complete
+SVGs are very tall; zoom is essential and the fast layout has visible crossings.
 
 ## Graph API
 
@@ -622,13 +669,11 @@ same API available to Python users.
 
 ## Remaining deliverables
 
-- Three reproducible model examples, including TinyLlama-1.1B-Chat-v1.0.
-- Before-and-after SVGs and measured performance, including graphs of 5000+ nodes.
+- Measured performance report, including graphs of 5000+ nodes.
 - Final API documentation, extension examples, and known limitations.
 
-Large-model SVGs and benchmark results will be added after they have actually
-been produced and verified. The current small examples do not establish
-performance on TinyLlama or graphs of 5000+ nodes.
+TinyLlama SVGs are available; the performance report and final clean-environment
+verification are the next stages.
 
 ## Known limitations
 

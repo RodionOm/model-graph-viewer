@@ -34,12 +34,30 @@ def create_branching_model() -> ov.Model:
     )
 
 
+def create_mlp_model() -> ov.Model:
+    """A deterministic 4 -> 3 -> 2 MLP with ReLU and fixed fp32 parameters."""
+    x = ops.parameter([1, 4], ov.Type.f32, name="input")
+    w1 = ops.constant(np.arange(12, dtype=np.float32).reshape(4, 3) / 10, name="weights1")
+    b1 = ops.constant(np.array([0.1, 0.2, 0.3], np.float32), name="bias1")
+    w2 = ops.constant(np.arange(6, dtype=np.float32).reshape(3, 2) / 10, name="weights2")
+    b2 = ops.constant(np.array([0.1, -0.1], np.float32), name="bias2")
+    hidden = ops.relu(
+        ops.add(ops.matmul(x, w1, False, False, name="dense1"), b1, name="add1"), name="relu"
+    )
+    output = ops.add(ops.matmul(hidden, w2, False, False, name="dense2"), b2, name="add2")
+    return ov.Model([ops.result(output, name="output")], [x], "mlp_example")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=Path("models"))
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    for name, model in [("linear", create_linear_model()), ("branching", create_branching_model())]:
+    for name, model in [
+        ("linear", create_linear_model()),
+        ("branching", create_branching_model()),
+        ("mlp", create_mlp_model()),
+    ]:
         path = args.output_dir / f"{name}.xml"
         # serialize preserves the declared weights and operation structure.
         ov.serialize(model, path)

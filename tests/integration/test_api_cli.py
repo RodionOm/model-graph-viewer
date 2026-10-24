@@ -99,6 +99,7 @@ def test_api_cli_equivalence_unicode_names_repeated_passes_and_custom_weights(
         weights_path=weights,
         timeout=30,
         max_label_length=100,
+        layout="fast",
     )
     cli_path = tmp_path / "вложенный каталог" / "CLI граф.svg"
     result = run_cli(
@@ -116,6 +117,8 @@ def test_api_cli_equivalence_unicode_names_repeated_passes_and_custom_weights(
         "30",
         "--max-label-length",
         "100",
+        "--layout",
+        "fast",
     )
     assert result.returncode == 0, result.stderr
     assert str(cli_path) in result.stdout

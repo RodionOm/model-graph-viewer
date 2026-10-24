@@ -49,7 +49,9 @@ class GraphvizRenderer:
     complete. timeout limits the external dot process, or None allows long layouts.
     """
 
-    def __init__(self, *, max_label_length: int = 120, timeout: float | None = None) -> None:
+    def __init__(
+        self, *, max_label_length: int = 120, timeout: float | None = None, layout: str = "default"
+    ) -> None:
         if type(max_label_length) is not int or max_label_length < 8:
             raise ValueError("max_label_length must be an integer of at least 8.")
         if timeout is not None and (
@@ -61,6 +63,9 @@ class GraphvizRenderer:
             raise ValueError("timeout must be a finite positive number or None.")
         self.max_label_length = max_label_length
         self.timeout = timeout
+        if layout not in {"default", "fast"}:
+            raise ValueError("layout must be 'default' or 'fast'.")
+        self.layout = layout
 
     def _short(self, text: str) -> str:
         limit = self.max_label_length
@@ -172,6 +177,10 @@ class GraphvizRenderer:
                 "arrowsize": "0.65",
             },
         )
+        if self.layout == "fast":
+            # Bound dot's search on long-range LLM connections. All graph data and
+            # ports are retained; only position optimization and edge routes change.
+            dot.graph_attr.update(nslimit="0.5", nslimit1="0.5", mclimit="0.25", splines="line")
         names = {node_id: f"n{index}" for index, node_id in enumerate(graph.nodes)}
         for node in graph.nodes.values():
             name = names[node.node_id]

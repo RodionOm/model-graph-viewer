@@ -52,15 +52,16 @@ def render_graph(
     *,
     max_label_length: int = 120,
     timeout: float | None = None,
+    layout: str = "default",
 ) -> Path:
     """Write SVG atomically and return its path; do not change the graph."""
     try:
         from model_graph_viewer.renderers import GraphvizRenderer
     except (ImportError, OSError) as exc:
         raise EnvironmentCheckError(f"Cannot import the Graphviz backend: {exc}") from exc
-    return GraphvizRenderer(max_label_length=max_label_length, timeout=timeout).render(
-        graph, output_path
-    )
+    return GraphvizRenderer(
+        max_label_length=max_label_length, timeout=timeout, layout=layout
+    ).render(graph, output_path)
 
 
 def visualize(
@@ -72,6 +73,7 @@ def visualize(
     loader: ModelLoader | None = None,
     max_label_length: int = 120,
     timeout: float | None = None,
+    layout: str = "default",
 ) -> Path:
     """Load IR, run the supplied passes, write SVG, and return its path.
 
@@ -82,4 +84,6 @@ def visualize(
     pipeline = Pipeline(passes)
     graph = load_graph(model_path, weights_path=weights_path, loader=loader)
     pipeline.apply(graph)
-    return render_graph(graph, output_path, max_label_length=max_label_length, timeout=timeout)
+    return render_graph(
+        graph, output_path, max_label_length=max_label_length, timeout=timeout, layout=layout
+    )

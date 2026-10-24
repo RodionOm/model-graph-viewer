@@ -1,0 +1,24 @@
+{
+  "repository": "OpenVINO/TinyLlama-1.1B-Chat-v1.0-fp16-ov",
+  "revision": "88a9e6bbe7f9f8cf4e61ac96eed57ec164ad46f5",
+  "original_model": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+  "weight_format": "fp16",
+  "files": {
+    "openvino_model.xml": {
+      "size_bytes": 1612967,
+      "sha256": "86e594d53e12ebe7ea85335828e363e8f550dadb661b99f7b3c2e59b6b604a10"
+    },
+    "config.json": {
+      "size_bytes": 667,
+      "sha256": "2bd92380c9aa59e54436860d2ed516039e58683695933de2a614a6e55e4adc93"
+    },
+    "README.md": {
+      "size_bytes": 3212,
+      "sha256": "33df6464b9008b278a95095f2eba7b7d233e2b2f9f4e2e7acb20e655656021da"
+    },
+    "openvino_model.bin": {
+      "size_bytes": 2200097101,
+      "sha256": "f2e830359ae60f25f3aaeea3a5207c5f5dedee0661dad32b9d679a00d6f3068f"
+    }
+  }
+}

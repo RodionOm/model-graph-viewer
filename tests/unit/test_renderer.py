@@ -69,6 +69,7 @@ def test_shortening_and_opaque_values_never_modify_or_read_original_data():
         {"timeout": float("nan")},
         {"timeout": float("inf")},
         {"timeout": True},
+        {"layout": "unknown"},
     ],
 )
 def test_invalid_renderer_options(options):

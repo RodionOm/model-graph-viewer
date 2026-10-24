@@ -24,7 +24,8 @@ def texts(root):
     return [item.text or "" for item in root.findall(".//s:text", NS)]
 
 
-def test_real_ir_to_transformed_svg_preserves_model_and_styles(tmp_path):
+@pytest.mark.parametrize("layout", ["default", "fast"])
+def test_real_ir_to_transformed_svg_preserves_model_and_styles(tmp_path, layout):
     x = ops.parameter([1, 2], ov.Type.f32, name="input")
     w = ops.constant(np.array([[0.5], [1.0]], dtype=np.float32), name="weights")
     b = ops.constant(np.array([1.0], dtype=np.float32), name="bias")
@@ -36,7 +37,7 @@ def test_real_ir_to_transformed_svg_preserves_model_and_styles(tmp_path):
     loader = OpenVINOLoader()
     loaded = loader.read_model(path)
     graph = loader.parse(loaded)
-    renderer = GraphvizRenderer()
+    renderer = GraphvizRenderer(layout=layout)
     before = ET.fromstring(renderer.render_svg(graph))
     assert len(groups(before, "node")) == 6
     assert len(groups(before, "edge")) == 5

@@ -376,3 +376,8 @@ def test_example_script_generates_loadable_model(tmp_path):
     graph = OpenVINOLoader().load(tmp_path / "linear.xml")
     assert len(graph.nodes) == 6
     assert len(graph.edges) == 5
+    mlp = OpenVINOLoader().load(tmp_path / "mlp.xml")
+    assert len(mlp.nodes) == 11
+    assert len(mlp.edges) == 10
+    assert sum(n.op_type == "MatMul" for n in mlp.nodes.values()) == 2
+    assert sum(n.op_type == "Relu" for n in mlp.nodes.values()) == 1

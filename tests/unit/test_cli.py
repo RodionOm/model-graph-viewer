@@ -25,6 +25,7 @@ from model_graph_viewer.passes import HideConstantsPass, HighlightPass
         (["--timeout", "0"], "finite positive"),
         (["--timeout", "-5"], "finite positive"),
         (["--timeout", "abc"], "positive number"),
+        (["--layout", "unknown"], "invalid choice"),
         (["--max-label-length", "7"], "integer of at least 8"),
         (["--max-label-length", "8.5"], "integer of at least 8"),
         (["--check-environment", "--timeout", "5"], "cannot be combined"),

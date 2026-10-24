@@ -66,6 +66,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--model", type=Path, help="input model path (default: OpenVINO IR .xml)")
     parser.add_argument("--loader", metavar="MODULE:FACTORY", help="custom model loader factory")
     parser.add_argument(
+        "--layout",
+        choices=("default", "fast"),
+        help="Graphviz layout profile (default: default); fast bounds layout optimization",
+    )
+    parser.add_argument(
         "--pass-config",
         type=Path,
         metavar="JSON",
@@ -112,6 +117,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.timeout,
         args.loader,
         args.pass_config,
+        args.layout,
     )
     has_render_options = any(value is not None for value in render_options)
     if args.check_environment and has_render_options:
@@ -150,6 +156,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 loader=loader,
                 max_label_length=args.max_label_length or 120,
                 timeout=args.timeout,
+                layout=args.layout or "default",
             )
             print(f"Created SVG: {output}")
     except ViewerError as exc:
