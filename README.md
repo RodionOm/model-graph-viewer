@@ -12,10 +12,10 @@ checks.
 
 The package setup, environment check, framework-independent graph API, OpenVINO
 IR loader, transformation pipeline, highlighting, and constant hiding are
-implemented and tested, together with port-aware SVG rendering. The convenience
-API and model-to-SVG command are the next stage.
-Stages 1–6 of the implementation plan are complete. The current suite passes
-178 tests, including real OpenVINO-to-SVG integration cases. Lint and formatting checks
+implemented and tested, together with port-aware SVG rendering, a public Python
+API, and the model-to-SVG CLI.
+Stages 1–7 of the implementation plan are complete. The current suite passes
+219 tests, including real OpenVINO-to-SVG and API/CLI integration cases. Lint and formatting checks
 also pass. Earlier setup checks verified the Graphviz SVG backend and installation
 of a built wheel independently of the editable source checkout.
 The original [starter_code.py](starter_code.py) is preserved as a standalone
@@ -129,6 +129,108 @@ model in `models/branching.xml` and `.bin`. It can be rerun to
 regenerate the example; these generated files are ignored by Git. Its weights are
 `W = [[0.5], [1.0]]` and `b = [1.0]`. With input `[[2, 3]]`, the output is `[[5.0]]`,
 which has also been checked with OpenVINO CPU inference.
+
+## Command-line usage
+
+After generating the models above, render the original or transformed graph.
+Native Graphviz must be on `PATH`, as described in Setup.
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\python -m model_graph_viewer --model models/linear.xml --output artifacts/original.svg
+.\.venv\Scripts\python -m model_graph_viewer `
+    --model models/linear.xml --output artifacts/simplified.svg `
+    --passes highlight,hide-constants --highlight-node matmul
+```
+
+Linux or macOS:
+
+```sh
+.venv/bin/python -m model_graph_viewer --model models/linear.xml --output artifacts/original.svg
+.venv/bin/python -m model_graph_viewer \
+    --model models/linear.xml --output artifacts/simplified.svg \
+    --passes highlight,hide-constants --highlight-node matmul
+```
+
+With the virtual environment active, `model-graph-viewer` is equivalent to
+`python -m model_graph_viewer`.
+
+- `--model` and `--output` are both required for rendering. The output must end
+  in `.svg`; parent directories are created. Quote paths containing spaces.
+- Without `--passes`, no transformations run. Supply a comma-separated sequence
+  of `highlight` and `hide-constants`. Order is preserved, including repeated
+  passes. Repeated `--passes` arguments append to that sequence.
+- `--highlight-node` is repeatable and matches exact, case-sensitive names,
+  including all duplicate names. For example, `--highlight-node "layer, one"
+  --highlight-node "layer two"` selects two complete names. Commas in names are
+  never split; surrounding spaces are significant. Unknown names match nothing.
+- The `highlight` pass requires at least one `--highlight-node`; supplying names
+  without that pass is an argument error. Disable a pass by omitting it from
+  `--passes`. Python callers can additionally use `PassStep(enabled=False)`.
+- `--weights path/to/weights.bin` selects weights separately from the XML.
+- `--max-label-length 200` changes ordinary node field truncation (minimum 8).
+  `--timeout 60` limits Graphviz layout to 60 seconds (positive, finite values).
+- `--check-environment` runs the setup check separately and cannot be combined
+  with rendering options. `--help`, `--version`, and a no-argument help invocation
+  do not need the backend packages or native Graphviz.
+
+Successful rendering prints the output path and exits with code 0. Invalid
+arguments exit with code 2. Expected loading, transformation, dependency, and
+rendering failures print a short message to stderr and exit with code 1.
+Unexpected programming errors retain their traceback. A failed render preserves
+an existing SVG, and no model or weight file is modified.
+
+## Python API
+
+The complete pipeline is available from the package root:
+
+```python
+from model_graph_viewer import visualize
+from model_graph_viewer.passes import HideConstantsPass, HighlightPass
+
+output = visualize(
+    "models/linear.xml",
+    "artifacts/api.svg",
+    passes=[HighlightPass(["matmul"]), HideConstantsPass()],
+)
+print(output)  # pathlib.Path
+```
+
+`visualize(model_path, output_path, *, passes=(), weights_path=None,
+max_label_length=120, timeout=None)` applies no transformations by default.
+Pass objects, custom passes, `PassStep` objects, and generators are supported.
+Steps execute in order, including repeats. Source model files are never changed.
+
+Use separate operations to inspect or modify the intermediate graph:
+
+```python
+from model_graph_viewer import apply_passes, load_graph, render_graph
+from model_graph_viewer.passes import HideConstantsPass, HighlightPass, PassStep
+
+graph = load_graph("models/linear.xml")
+apply_passes(graph, [
+    HighlightPass(["matmul"]),
+    PassStep(HideConstantsPass(), enabled=False),
+])
+print(len(graph.nodes))  # 6: constant hiding was disabled
+render_graph(graph, "artifacts/api_separate.svg", timeout=60)
+```
+
+`load_graph` accepts optional `weights_path`; `render_graph` accepts
+`max_label_length` and `timeout`, as above. `apply_passes` changes the supplied
+graph in place and returns it. It validates the graph even for an empty pass
+sequence. `render_graph` returns the output `Path` and does not modify the graph.
+Imports from `model_graph_viewer` do not import OpenVINO or Graphviz; each backend
+is loaded only when needed.
+
+Expected backend failures raise subclasses of `model_graph_viewer.errors.ViewerError`
+with full context and exception causes. Invalid Python configuration types or
+values raise `TypeError` or `ValueError`; unexpected programming errors propagate.
+Completed pass changes are not rolled back on failure. The lower-level loader,
+pipeline, and renderer interfaces below remain available for more control.
+
+## Loader details
 
 Use the loader from Python:
 
@@ -453,12 +555,11 @@ OpenVINO XML + BIN -> Loader -> Graph -> Transformation pipeline -> Renderer -> 
 The graph owns ordinary Python data, with unique node IDs independent of
 names and edges identifying both source and destination ports. The OpenVINO
 loader is isolated from this representation. Passes modify the
-visualization graph without modifying the original model. The CLI will call the
+visualization graph without modifying the original model. The CLI calls the
 same API available to Python users.
 
 ## Remaining deliverables
 
-- Convenience Python API and configurable model-to-SVG CLI, with matching tests.
 - Three reproducible model examples, including TinyLlama-1.1B-Chat-v1.0.
 - Before-and-after SVGs and measured performance, including graphs of 5000+ nodes.
 - Final API documentation, extension examples, and known limitations.
