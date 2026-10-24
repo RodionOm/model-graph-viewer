@@ -14,7 +14,8 @@ The package setup, environment check, framework-independent graph API, OpenVINO
 IR loader, transformation pipeline, highlighting, and constant hiding are
 implemented and tested, together with port-aware SVG rendering, a public Python
 API, and the model-to-SVG CLI.
-Stages 1–9 of the implementation plan are complete. The current suite passes
+All ten implementation stages are complete, with the limitations documented below.
+The current suite passes
 254 tests, including real OpenVINO-to-SVG and API/CLI integration cases. Lint and formatting checks
 also pass. Earlier setup checks verified the Graphviz SVG backend and installation
 of a built wheel independently of the editable source checkout.
@@ -667,11 +668,23 @@ loader is isolated from this representation. Passes modify the
 visualization graph without modifying the original model. The CLI calls the
 same API available to Python users.
 
-## Remaining deliverables
+## Verification
 
-- Final clean-environment verification and submission review.
+On 2026-10-24 the final code was built as a wheel and installed with the pinned
+dependencies in a separate virtual environment, without an editable installation.
+Imports were verified to come from `site-packages`. All 254 tests passed with no
+skips; Ruff lint and formatting passed. The environment check, nine standalone
+Python examples from this README, installed CLI, custom loader/pass examples,
+model generators, downloader verification and benchmark scripts were exercised.
 
-The required models, SVGs, extension examples and measured performance are available.
+All eight SVGs were regenerated using that installation and matched the committed
+working-tree examples byte for byte on this Windows/Graphviz/font environment.
+The final wheel's 18 Python source files were compared with the repository.
+[verification.json](benchmarks/verification.json) records checks and SVG SHA256.
+Model weights, local environments, diagnostic previews and temporary artifacts
+are excluded from Git. Linux/macOS commands are provided as equivalents, but
+those platforms were not tested; SVG byte identity is not promised across fonts
+or Graphviz versions.
 
 ## Performance
 

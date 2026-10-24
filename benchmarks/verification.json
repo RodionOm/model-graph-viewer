@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-24",
+  "platform_checked": "Windows 11, Python 3.12.10",
+  "installation": "isolated venv, wheel installation, not editable; import verified in site-packages",
+  "wheel_sha256": "f331ea6365b711aa30eea6e2624cdea5371175d694591f5f634983e279f037cb",
+  "source_files_matching_wheel": [
+    "model_graph_viewer/api.py",
+    "model_graph_viewer/cli.py",
+    "model_graph_viewer/configuration.py",
+    "model_graph_viewer/environment.py",
+    "model_graph_viewer/errors.py",
+    "model_graph_viewer/graph.py",
+    "model_graph_viewer/__init__.py",
+    "model_graph_viewer/__main__.py",
+    "model_graph_viewer/loaders/base.py",
+    "model_graph_viewer/loaders/openvino.py",
+    "model_graph_viewer/loaders/__init__.py",
+    "model_graph_viewer/passes/base.py",
+    "model_graph_viewer/passes/hide_constants.py",
+    "model_graph_viewer/passes/highlight.py",
+    "model_graph_viewer/passes/pipeline.py",
+    "model_graph_viewer/passes/__init__.py",
+    "model_graph_viewer/renderers/graphviz.py",
+    "model_graph_viewer/renderers/__init__.py"
+  ],
+  "pytest": {
+    "passed": 254,
+    "failed": 0,
+    "skipped": 0
+  },
+  "ruff_check": "passed",
+  "ruff_format": "passed",
+  "readme_python_examples_executed": 9,
+  "native_graphviz_check": "passed",
+  "model_hashes": "TinyLlama SHA256 checked before and after visualization",
+  "svg_reproduction": "all 8 regenerated from clean wheel installation; byte-identical on this environment",
+  "svg_sha256": {
+    "branching_after.svg": "1ba2a1798e997d6a17bdbc94857d82f429b0d83c68487201a03ca05c81f0c003",
+    "branching_before.svg": "3a7123761ba84f858a27a37e1aa119b86ab6a7ebc9e0472c153f2b4023991075",
+    "linear_after.svg": "34730fa96fcfa8ec860a5402623f40d5348fd0e41919be1ed1e661e9466ef418",
+    "linear_before.svg": "da9a8e887faaad9a8d2ef9cc14924bd8ae696206dca2cf2719746c33db683cdb",
+    "mlp_after.svg": "1edebc3fb981bb6abae8769b9ff9982bac12c5d1d1d49aee2eea79af45085b7f",
+    "mlp_before.svg": "a1737b37c49e296cf51a5191c4473376ac3dbb8b2ed3403ad6ba4599c420c2b2",
+    "tinyllama_after.svg": "1bb7d751b093b854a907924f42f2c824511544d690a3608d03c11f28fa471f56",
+    "tinyllama_before.svg": "6a18adb342809865fe8fc1e84a8091a9787314076afead4cf11616edea463970"
+  },
+  "limits": [
+    "Linux/macOS commands are documented but were not executed on those platforms.",
+    "Native peak memory was not measured.",
+    "Default TinyLlama layout timed out; delivered large SVGs use the documented fast profile."
+  ]
+}
