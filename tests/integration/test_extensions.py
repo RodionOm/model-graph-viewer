@@ -5,6 +5,7 @@ import sys
 from xml.etree import ElementTree as ET
 
 import openvino as ov
+import pytest
 from openvino import opset13 as ops
 
 from model_graph_viewer import load_graph
@@ -81,10 +82,28 @@ def test_parameter_convert_and_variable_metadata_use_consistent_notation():
 
 
 def test_broken_xml_does_not_incorrectly_blame_missing_weights(tmp_path):
-    import pytest
-
     path = tmp_path / "bad.xml"
     path.write_text("not xml")
     with pytest.raises(ModelLoadError) as exc:
         load_graph(path)
     assert "Companion weights" not in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "shape,expected",
+    [
+        (None, "[...]"),
+        (ov.PartialShape([]), "[]"),
+        (ov.PartialShape([ov.Dimension(1, 8), 8]), "[1..8, 8]"),
+    ],
+)
+def test_declared_variable_shape_preserves_dynamic_rank_scalar_and_intervals(shape, expected):
+    x = ops.parameter(shape if shape is not None else [2, 8], ov.Type.f32)
+    read = (
+        ops.read_value(x, "cache")
+        if shape is None
+        else ops.read_value(x, "cache", ov.Type.f32, shape)
+    )
+    graph = OpenVINOLoader().parse(ov.Model([read], [x]))
+    node = next(n for n in graph.nodes.values() if n.op_type == "ReadValue")
+    assert node.attributes["variable_shape"] == expected

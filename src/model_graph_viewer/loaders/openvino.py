@@ -99,6 +99,10 @@ class OpenVINOLoader:
         if not isinstance(model, ov.Model):
             raise ModelLoadError("Expected an openvino.Model to parse.")
         operations = model.get_ordered_ops()
+        variable_shapes = {}
+        for variable in model.get_variables():
+            info = variable.get_info()
+            variable_shapes[info.variable_id] = str(_shape(info.data_shape))
         node_ids = {operation: str(index) for index, operation in enumerate(operations)}
         graph = Graph()
         tensors: dict[tuple[str, int], TensorMetadata] = {}
@@ -124,9 +128,10 @@ class OpenVINOLoader:
                         attributes[key] = _DTYPE_NAMES.get(attributes[key], attributes[key])
                 # Variable metadata is distinct from the inferred output shape.
                 # Preserve that distinction while using the same shape notation.
-                variable_shape = attributes.get("variable_shape")
-                if isinstance(variable_shape, tuple):
-                    attributes["variable_shape"] = str(_shape(ov.PartialShape(variable_shape)))
+                variable_id = attributes.get("variable_id")
+                if "variable_shape" in attributes and variable_id in variable_shapes:
+                    # get_attributes() flattens both dynamic rank and scalar to [].
+                    attributes["variable_shape"] = variable_shapes[variable_id]
             node = Node(
                 node_id=node_id,
                 name=operation.get_friendly_name(),
