@@ -1,0 +1,7 @@
+{
+  "nodes": [
+    {"node_id": "0", "name": "input", "op_type": "Parameter", "output_ports": [0]},
+    {"node_id": "1", "name": "output", "op_type": "Result", "input_ports": [0]}
+  ],
+  "edges": [{"from_node": "0", "from_port": 0, "to_node": "1", "to_port": 0}]
+}

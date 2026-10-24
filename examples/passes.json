@@ -1,0 +1,6 @@
+[
+  {"name": "highlight", "options": {"node_names": ["matmul"]}},
+  {"name": "hide-constants"},
+  {"name": "highlight", "options": {"node_names": ["add"]}, "enabled": false},
+  {"name": "examples.extensions:MarkOutputs", "options": {"color": "blue"}}
+]

@@ -1,6 +1,7 @@
 """Read OpenVINO IR without compiling, transforming, or copying model weights."""
 
 from pathlib import Path
+from xml.etree import ElementTree
 
 import openvino as ov
 
@@ -8,6 +9,18 @@ from model_graph_viewer.errors import ModelLoadError
 from model_graph_viewer.graph import Dimension, Edge, Graph, Node, TensorMetadata, TensorShape
 
 _DTYPE_NAMES = {"f16": "fp16", "f32": "fp32", "f64": "fp64"}
+
+
+def _requires_weights(path: Path) -> bool:
+    """Only suggest missing weights when valid IR declares external constant data."""
+    try:
+        root = ElementTree.parse(path).getroot()
+        return root.tag == "net" and any(
+            int(data.get("size", "0")) > 0
+            for data in root.findall("./layers/layer[@type='Const']/data")
+        )
+    except (OSError, ValueError, ElementTree.ParseError):
+        return False
 
 
 def _shape(shape: ov.PartialShape) -> TensorShape:
@@ -74,7 +87,11 @@ class OpenVINOLoader:
             # Let OpenVINO decide whether weights are required by this particular IR.
             return ov.Core().read_model(str(path), str(weights) if weights.is_file() else "")
         except (RuntimeError, OSError) as exc:
-            hint = "" if weights.is_file() else f" Companion weights file was not found: {weights}."
+            hint = (
+                f" Companion weights file was not found: {weights}."
+                if not weights.is_file() and _requires_weights(path)
+                else ""
+            )
             raise ModelLoadError(f"Cannot read OpenVINO IR {path}.{hint}\n{exc}") from exc
 
     def parse(self, model: ov.Model) -> Graph:
@@ -102,6 +119,14 @@ class OpenVINOLoader:
                 if op_type == "Parameter":
                     # get_attributes may flatten dimension intervals to -1.
                     attributes["shape"] = str(tensors[(node_id, 0)].shape)
+                for key in ("element_type", "destination_type", "variable_type"):
+                    if isinstance(attributes.get(key), str):
+                        attributes[key] = _DTYPE_NAMES.get(attributes[key], attributes[key])
+                # Variable metadata is distinct from the inferred output shape.
+                # Preserve that distinction while using the same shape notation.
+                variable_shape = attributes.get("variable_shape")
+                if isinstance(variable_shape, tuple):
+                    attributes["variable_shape"] = str(_shape(ov.PartialShape(variable_shape)))
             node = Node(
                 node_id=node_id,
                 name=operation.get_friendly_name(),

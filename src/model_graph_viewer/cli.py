@@ -8,6 +8,7 @@ from pathlib import Path
 
 from model_graph_viewer import __version__
 from model_graph_viewer.api import visualize
+from model_graph_viewer.configuration import component, configured_passes
 from model_graph_viewer.environment import check_environment
 from model_graph_viewer.errors import ViewerError
 from model_graph_viewer.passes import HideConstantsPass, HighlightPass, TransformationPass
@@ -53,7 +54,7 @@ def _passes(parser: argparse.ArgumentParser, args: argparse.Namespace) -> list[T
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="model-graph-viewer",
-        description="Render an OpenVINO IR model as a port-aware SVG graph.",
+        description="Render a model as a port-aware SVG graph (OpenVINO IR by default).",
         allow_abbrev=False,
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -62,7 +63,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="check OpenVINO and Graphviz, including a small SVG render",
     )
-    parser.add_argument("--model", type=Path, help="OpenVINO IR .xml model path")
+    parser.add_argument("--model", type=Path, help="input model path (default: OpenVINO IR .xml)")
+    parser.add_argument("--loader", metavar="MODULE:FACTORY", help="custom model loader factory")
+    parser.add_argument(
+        "--pass-config",
+        type=Path,
+        metavar="JSON",
+        help="JSON array of independently configured passes; replaces --passes/--highlight-node",
+    )
     parser.add_argument(
         "--weights", type=Path, help="optional .bin weights path (default: beside XML)"
     )
@@ -102,6 +110,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.highlight_node,
         args.max_label_length,
         args.timeout,
+        args.loader,
+        args.pass_config,
     )
     has_render_options = any(value is not None for value in render_options)
     if args.check_environment and has_render_options:
@@ -115,17 +125,29 @@ def main(argv: Sequence[str] | None = None) -> int:
             parser.error("rendering requires both --model and --output")
         if args.output.suffix.lower() != ".svg":
             parser.error("--output must end with .svg")
-        transformations = _passes(parser, args)
+        if args.loader is not None and args.weights is not None:
+            parser.error(
+                "--weights belongs to the default loader; configure custom weights in its factory"
+            )
+        if args.pass_config is not None:
+            if args.passes is not None or args.highlight_node is not None:
+                parser.error("--pass-config cannot be combined with --passes or --highlight-node")
+        else:
+            transformations = _passes(parser, args)
     try:
         if args.check_environment:
             for name, value in check_environment().items():
                 print(f"{name}: {value}")
         else:
+            if args.pass_config is not None:
+                transformations = configured_passes(args.pass_config)
+            loader = component(args.loader) if args.loader is not None else None
             output = visualize(
                 args.model,
                 args.output,
                 passes=transformations,
                 weights_path=args.weights,
+                loader=loader,
                 max_label_length=args.max_label_length or 120,
                 timeout=args.timeout,
             )

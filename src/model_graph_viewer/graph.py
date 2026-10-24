@@ -110,9 +110,16 @@ class Node:
     attributes: dict[str, object] = field(default_factory=dict)
     visualization: dict[str, object] = field(default_factory=dict)
 
+    # Mutable metadata participates in value equality; use node_id as a map key.
+    __hash__ = None
+
     def __post_init__(self) -> None:
         if not isinstance(self.node_id, str) or not self.node_id:
             raise GraphValidationError("Node ID must be a nonempty string.")
+        if not isinstance(self.name, str):
+            raise GraphValidationError("Node name must be a string.")
+        if not isinstance(self.op_type, str) or not self.op_type:
+            raise GraphValidationError("Node operation type must be a nonempty string.")
         object.__setattr__(self, "input_ports", _ports(self.input_ports, "Input port"))
         object.__setattr__(self, "output_ports", _ports(self.output_ports, "Output port"))
         # Own the dictionaries, so changing a caller's dictionary does not replace attributes.

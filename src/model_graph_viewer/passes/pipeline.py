@@ -43,10 +43,8 @@ class Pipeline:
             name = type(step.transformation).__name__
             try:
                 result = step.transformation.apply(graph)
-                if result is not None:
-                    raise TypeError(
-                        f"Pass {index} ({name}) must modify the graph in place and return None."
-                    )
+                if result is not None and result is not graph:
+                    raise TypeError(f"Pass {index} ({name}) must return None or the same graph.")
                 graph.validate()
             except GraphValidationError as exc:
                 raise GraphValidationError(f"Pass {index} ({name}) failed: {exc}") from exc

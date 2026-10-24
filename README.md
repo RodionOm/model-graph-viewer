@@ -15,7 +15,7 @@ IR loader, transformation pipeline, highlighting, and constant hiding are
 implemented and tested, together with port-aware SVG rendering, a public Python
 API, and the model-to-SVG CLI.
 Stages 1–7 of the implementation plan are complete. The current suite passes
-219 tests, including real OpenVINO-to-SVG and API/CLI integration cases. Lint and formatting checks
+247 tests, including real OpenVINO-to-SVG and API/CLI integration cases. Lint and formatting checks
 also pass. Earlier setup checks verified the Graphviz SVG backend and installation
 of a built wheel independently of the editable source checkout.
 The original [starter_code.py](starter_code.py) is preserved as a standalone
@@ -167,7 +167,8 @@ With the virtual environment active, `model-graph-viewer` is equivalent to
   never split; surrounding spaces are significant. Unknown names match nothing.
 - The `highlight` pass requires at least one `--highlight-node`; supplying names
   without that pass is an argument error. Disable a pass by omitting it from
-  `--passes`. Python callers can additionally use `PassStep(enabled=False)`.
+  `--passes`. For independent options and enabled flags on every step, use
+  `--pass-config` as described in Extensibility below.
 - `--weights path/to/weights.bin` selects weights separately from the XML.
 - `--max-label-length 200` changes ordinary node field truncation (minimum 8).
   `--timeout 60` limits Graphviz layout to 60 seconds (positive, finite values).
@@ -197,7 +198,7 @@ output = visualize(
 print(output)  # pathlib.Path
 ```
 
-`visualize(model_path, output_path, *, passes=(), weights_path=None,
+`visualize(model_path, output_path, *, passes=(), weights_path=None, loader=None,
 max_label_length=120, timeout=None)` applies no transformations by default.
 Pass objects, custom passes, `PassStep` objects, and generators are supported.
 Steps execute in order, including repeats. Source model files are never changed.
@@ -217,7 +218,7 @@ print(len(graph.nodes))  # 6: constant hiding was disabled
 render_graph(graph, "artifacts/api_separate.svg", timeout=60)
 ```
 
-`load_graph` accepts optional `weights_path`; `render_graph` accepts
+`load_graph` accepts optional `weights_path` or a configured `loader` instance; `render_graph` accepts
 `max_label_length` and `timeout`, as above. `apply_passes` changes the supplied
 graph in place and returns it. It validates the graph even for an empty pass
 sequence. `render_graph` returns the output `Path` and does not modify the graph.
@@ -247,11 +248,11 @@ for node in graph.nodes.values():
 
 The operations are `Parameter`, two `Constant` nodes, `MatMul`, `Add`, and `Result`.
 Weights remain in the model: the intermediate graph contains only their shape
-and dtype. Render this graph with the API described below.
+and dtype. Render this graph with the [Python API](#python-api).
 
 `loader.read_model(path)` returns an OpenVINO model; `loader.parse(model)` converts
 an existing model to our graph. `load(path)` combines these steps. Reading uses
-[OpenVINO Core.read_model](https://docs.openvino.ai/2025/api/ie_python_api/_autosummary/openvino.Core.html)
+[OpenVINO Core.read_model](https://docs.openvino.ai/2026/api/ie_python_api/_autosummary/openvino.Core.html)
 without compiling, reshaping, or optimizing the model.
 
 By default, the loader looks for a `.bin` next to the `.xml` with the same stem.
@@ -287,7 +288,8 @@ missing files, invalid XML, and invalid weight files raise
 
 Passes operate on the independent graph. They modify it in place, without copying
 the whole graph or touching the original OpenVINO model. Each pass implements
-`apply(graph) -> None`; `Pipeline.apply(graph)` returns the same graph for convenience.
+`apply(graph) -> None` or returns the same graph; `Pipeline.apply(graph)` returns
+the same graph for convenience. Returning a different graph is rejected.
 
 ```python
 from model_graph_viewer.loaders.openvino import OpenVINOLoader
@@ -327,7 +329,7 @@ graph stops execution with `GraphValidationError`, including the failing pass's
 position and class when applicable. Unexpected programming errors propagate.
 Completed changes are not rolled back on failure; reload the model to start over.
 Returning a replacement graph from a pass raises `TypeError` because passes use
-the in-place contract. Validation costs one graph traversal per enabled pass,
+the in-place contract; returning the supplied graph is accepted. Validation costs one graph traversal per enabled pass,
 and highlighting scans the nodes with a set lookup for each name.
 
 ### Hide constant nodes
@@ -404,6 +406,61 @@ can change the selected output borders to red. Adding this pass requires no chan
 to the loader or graph representation. Graph and pass imports do not load OpenVINO
 or Graphviz.
 
+## Extensibility
+
+Passes and model adapters can be added without editing API, CLI, graph, or renderer
+code. There is no global plugin registry or automatic discovery. Python callers
+pass objects; CLI callers explicitly select an importable `module:factory`.
+
+For a new format, implement `load(model_path) -> Graph` and pass an instance:
+
+```python
+from model_graph_viewer import visualize
+from examples.extensions import JsonGraphLoader
+
+visualize("examples/custom_graph.json", "artifacts/custom.svg", loader=JsonGraphLoader())
+```
+
+The protocol does not require `weights_path`. This option is specific to the
+default OpenVINO loader; when using a custom loader, configure its additional
+options on the instance or in its zero-argument factory. An equivalent CLI call
+from the repository root is:
+
+```sh
+python -m model_graph_viewer --model examples/custom_graph.json --output artifacts/custom.svg --loader examples.extensions:JsonGraphLoader
+```
+
+This small JSON adapter is an extension demonstration, not ONNX support. It reads
+nodes/edges without tensor metadata. For ONNX, implement its parsing in a new
+adapter returning the same `Graph` contract and select that adapter in the same way.
+
+For per-step options, pass a JSON array using `--pass-config`:
+
+```json
+[
+  {"name": "highlight", "options": {"node_names": ["matmul"]}},
+  {"name": "hide-constants"},
+  {"name": "highlight", "options": {"node_names": ["add"]}, "enabled": false},
+  {"name": "examples.extensions:MarkOutputs", "options": {"color": "blue"}}
+]
+```
+
+```sh
+python -m model_graph_viewer --model models/linear.xml --output artifacts/configured.svg --pass-config examples/passes.json
+```
+
+Each entry has its own constructor options and an optional boolean `enabled`
+(default `true`). Entries are applied in array order. A name is a built-in alias
+or an importable factory returning a pass with `apply(graph)`. The example custom
+pass is in [examples/extensions.py](examples/extensions.py). Its only dependency
+is the graph API. Configured factories are instantiated and validated even when
+the step is disabled; disabled steps are not applied.
+
+`--pass-config` cannot be combined with `--passes` or `--highlight-node`; the
+short CLI form retains its shared highlight-name list. Factories are ordinary
+Python code: selecting one imports and executes it. Use code you intend to run,
+and install the module or make it importable on `PYTHONPATH`.
+
 ## Render SVG
 
 The renderer accepts the independent graph, including graphs created without
@@ -428,7 +485,9 @@ returns a Python `graphviz.Digraph` for inspection without invoking native `dot`
 None of these methods changes the graph or imports OpenVINO.
 
 Nodes show their operation type, name, ID, operation attributes, input/output
-ports, and hidden-constant records. Edges connect explicit ports and show both
+ports, and hidden-constant records. An unconnected backend output on `Result` is
+omitted from its label, while remaining available in `Graph`; a connected output
+is always drawn. Edges connect explicit ports and show both
 port numbers and tensor metadata. Layout runs from top to bottom. Unknown
 operation types use a neutral fill; a pass can set `visualization["fillcolor"]`,
 `["border_color"]`, or `["note"]`. An empty graph produces an empty SVG canvas;
@@ -523,6 +582,9 @@ separate mutable `attributes` and `visualization` dictionaries. Dictionary
 containers are copied on construction; nested attribute values are not deep-copied.
 This allows future passes to change display metadata without changing graph
 identity or overwriting operation attributes.
+Names must be strings (empty names are allowed); operation types must be nonempty
+strings. Nodes have value equality and are explicitly unhashable because their
+metadata is mutable. Use `node_id` as a dictionary/set key.
 
 ### Tensor metadata
 
@@ -567,3 +629,25 @@ same API available to Python users.
 Large-model SVGs and benchmark results will be added after they have actually
 been produced and verified. The current small examples do not establish
 performance on TinyLlama or graphs of 5000+ nodes.
+
+## Known limitations
+
+- Only OpenVINO IR is built in. Other formats require an adapter; no model
+  compilation or inference is performed by the viewer.
+- `If`, `Loop`, and `TensorIterator` bodies are not expanded. Only outer data
+  connections are represented; state-variable relationships and execution/control
+  dependencies are not extra data edges. Symbolic equality of dimensions is not retained.
+- Constant hiding stops at the immediate consumer. In a fp16
+  `Constant -> Convert -> MatMul` chain, the weight record appears on `Convert`;
+  the conversion node remains visible. This pass does not collapse such patterns.
+- A highlighted Constant disappears when hidden. "Shared" counts distinct
+  consumer operations, so one operation using a Constant twice has two records
+  without a shared marker. Both behaviors are deliberate and tested.
+- Ordinary node fields are shortened; tensor/port records remain complete.
+  Backend operation attributes may have different semantics from edge metadata;
+  declared variable shapes are not replaced by inferred output shapes.
+- Large SVGs need browser zoom and can be difficult to navigate. Graphviz layout
+  cost depends strongly on topology, not just node count. A fast chain benchmark
+  does not predict performance on LLMs. Exact layout varies with fonts/versions.
+- Passes modify the visualization graph in place without rollback. They may
+  return `None` or the same graph, but cannot replace it with a new graph.

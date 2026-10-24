@@ -7,13 +7,33 @@ of OpenVINO and Graphviz, including when imported from the package root.
 from collections.abc import Iterable
 from pathlib import Path
 
-from model_graph_viewer.errors import EnvironmentCheckError
+from model_graph_viewer.errors import ConfigurationError, EnvironmentCheckError
 from model_graph_viewer.graph import Graph
+from model_graph_viewer.loaders import ModelLoader
 from model_graph_viewer.passes import PassStep, Pipeline, TransformationPass
 
 
-def load_graph(model_path: str | Path, *, weights_path: str | Path | None = None) -> Graph:
-    """Read OpenVINO IR into a detached graph without compiling the model."""
+def load_graph(
+    model_path: str | Path,
+    *,
+    weights_path: str | Path | None = None,
+    loader: ModelLoader | None = None,
+) -> Graph:
+    """Load a graph using an injected adapter, or OpenVINO IR by default.
+
+    Custom loaders implement load(path) only. Configure their extra options on
+    the instance; weights_path belongs to the default OpenVINO adapter.
+    """
+    if loader is not None:
+        if weights_path is not None:
+            raise ConfigurationError("Configure weights on the custom loader; omit weights_path.")
+        if not callable(getattr(loader, "load", None)):
+            raise ConfigurationError("A loader must provide load(model_path).")
+        graph = loader.load(model_path)
+        if not isinstance(graph, Graph):
+            raise ConfigurationError("A loader must return a Graph.")
+        graph.validate()
+        return graph
     try:
         from model_graph_viewer.loaders.openvino import OpenVINOLoader
     except (ImportError, OSError) as exc:
@@ -49,6 +69,7 @@ def visualize(
     *,
     passes: Iterable[TransformationPass | PassStep] = (),
     weights_path: str | Path | None = None,
+    loader: ModelLoader | None = None,
     max_label_length: int = 120,
     timeout: float | None = None,
 ) -> Path:
@@ -59,6 +80,6 @@ def visualize(
     Use the individual operations when the resulting Graph is also needed.
     """
     pipeline = Pipeline(passes)
-    graph = load_graph(model_path, weights_path=weights_path)
+    graph = load_graph(model_path, weights_path=weights_path, loader=loader)
     pipeline.apply(graph)
     return render_graph(graph, output_path, max_label_length=max_label_length, timeout=timeout)

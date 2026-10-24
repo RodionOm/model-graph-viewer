@@ -19,3 +19,7 @@ class ModelLoadError(ViewerError):
 
 class RenderError(ViewerError):
     """A graph cannot be rendered or its output cannot be saved."""
+
+
+class ConfigurationError(ViewerError):
+    """A component reference or pass configuration is invalid."""

@@ -102,7 +102,7 @@ class GraphvizRenderer:
             f"<TR>{cells}</TR></TABLE></TD></TR>"
         )
 
-    def _label(self, node: Node) -> str:
+    def _label(self, node: Node, *, show_outputs: bool = True) -> str:
         fill = node.visualization.get("fillcolor", _FILLCOLORS.get(node.op_type, "#f8fafc"))
         border = node.visualization.get("border_color", "#64748b")
         if not isinstance(fill, str) or not isinstance(border, str):
@@ -141,7 +141,8 @@ class GraphvizRenderer:
                 + _html(self._value(node.visualization["note"]))
                 + "</I></TD></TR>"
             )
-        rows.append(self._ports(node.output_ports, "out"))
+        if show_outputs:
+            rows.append(self._ports(node.output_ports, "out"))
         return (
             f'<<TABLE BORDER="{width}" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" '
             f'COLOR="{escape(border)}" BGCOLOR="{escape(fill)}">' + "".join(rows) + "</TABLE>>"
@@ -174,7 +175,10 @@ class GraphvizRenderer:
         names = {node_id: f"n{index}" for index, node_id in enumerate(graph.nodes)}
         for node in graph.nodes.values():
             name = names[node.node_id]
-            dot.node(name, label=self._label(node), id=f"node_{name}")
+            # Result's unused backend output is not another computation step.
+            # Retain the actual port in Graph, and show it if it has connections.
+            show_outputs = node.op_type != "Result" or bool(graph.outgoing(node.node_id))
+            dot.node(name, label=self._label(node, show_outputs=show_outputs), id=f"node_{name}")
         for index, edge in enumerate(graph.edges.values()):
             label = f"out {edge.from_port} → in {edge.to_port}\n{edge.tensor}"
             dot.edge(
