@@ -1,0 +1,86 @@
+{
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.10",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "logical_cpus": 16,
+    "openvino": "2026.4.1",
+    "python_graphviz": "0.21",
+    "graphviz": "dot - graphviz version 16.1.0 (20260904.0139)",
+    "physical_memory_bytes": 8183242752
+  },
+  "method": "One run per variant; baseline first, then transformed. Files are hashed before timing, so OS file caching is warm. No model compilation. Read and construction measured separately; pass times include validation; render includes DOT, native dot, SVG validation and file write. Times are measurements, not guarantees. Native peak memory is not measured.",
+  "models": [
+    {
+      "xml": {
+        "path": "models/tinyllama/openvino_model.xml",
+        "size_bytes": 1612967,
+        "sha256": "86e594d53e12ebe7ea85335828e363e8f550dadb661b99f7b3c2e59b6b604a10"
+      },
+      "weights": {
+        "path": "models/tinyllama/openvino_model.bin",
+        "size_bytes": 2200097101,
+        "sha256": "f2e830359ae60f25f3aaeea3a5207c5f5dedee0661dad32b9d679a00d6f3068f"
+      },
+      "runs": [
+        {
+          "variant": "before",
+          "layout": "fast",
+          "status": "success",
+          "error": null,
+          "before": {
+            "nodes": 3216,
+            "edges": 3789
+          },
+          "after": {
+            "nodes": 3216,
+            "edges": 3789
+          },
+          "highlight_names": [],
+          "read_seconds": 0.13101200002711266,
+          "construction_seconds": 0.18199130007997155,
+          "loading_seconds": 0.3130033001070842,
+          "passes_seconds": 1.600012183189392e-06,
+          "pass_timings": [],
+          "rendering_seconds": 25.45226619997993,
+          "svg": "examples/svg/tinyllama_before.svg",
+          "svg_size_bytes": 6238633
+        },
+        {
+          "variant": "after",
+          "layout": "fast",
+          "status": "success",
+          "error": null,
+          "before": {
+            "nodes": 3216,
+            "edges": 3789
+          },
+          "after": {
+            "nodes": 1957,
+            "edges": 2477
+          },
+          "highlight_names": [
+            "__module.model.layers.0.self_attn.q_proj/ov_ext::linear/MatMul"
+          ],
+          "read_seconds": 0.16805209999438375,
+          "construction_seconds": 0.15730349998921156,
+          "loading_seconds": 0.3253555999835953,
+          "passes_seconds": 0.025240199989639223,
+          "pass_timings": [
+            {
+              "pass": "HighlightPass",
+              "seconds": 0.010724999941885471
+            },
+            {
+              "pass": "HideConstantsPass",
+              "seconds": 0.014508299995213747
+            }
+          ],
+          "rendering_seconds": 13.384918199968524,
+          "svg": "examples/svg/tinyllama_after.svg",
+          "svg_size_bytes": 4218601
+        }
+      ]
+    }
+  ]
+}

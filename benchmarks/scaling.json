@@ -1,0 +1,71 @@
+{
+  "method": "3 runs per size; median; Add chain with shared Constant; no rendering.",
+  "sizes": [
+    {
+      "before_nodes": 1002,
+      "before_edges": 2000,
+      "after_nodes": 1001,
+      "after_edges": 1000,
+      "median_construction_seconds": 0.008588099968619645,
+      "median_passes_seconds": 0.007204400026239455,
+      "samples": [
+        {
+          "construction_seconds": 0.008588099968619645,
+          "passes_seconds": 0.007204400026239455
+        },
+        {
+          "construction_seconds": 0.0075894000474363565,
+          "passes_seconds": 0.00717669993173331
+        },
+        {
+          "construction_seconds": 0.01483530004043132,
+          "passes_seconds": 0.00757979997433722
+        }
+      ]
+    },
+    {
+      "before_nodes": 5002,
+      "before_edges": 10000,
+      "after_nodes": 5001,
+      "after_edges": 5000,
+      "median_construction_seconds": 0.041144499904476106,
+      "median_passes_seconds": 0.054851300083100796,
+      "samples": [
+        {
+          "construction_seconds": 0.041144499904476106,
+          "passes_seconds": 0.054851300083100796
+        },
+        {
+          "construction_seconds": 0.039833900053054094,
+          "passes_seconds": 0.05681189999449998
+        },
+        {
+          "construction_seconds": 0.051655399962328374,
+          "passes_seconds": 0.041715400060638785
+        }
+      ]
+    },
+    {
+      "before_nodes": 10002,
+      "before_edges": 20000,
+      "after_nodes": 10001,
+      "after_edges": 10000,
+      "median_construction_seconds": 0.11874679999891669,
+      "median_passes_seconds": 0.11496539996005595,
+      "samples": [
+        {
+          "construction_seconds": 0.09630770003423095,
+          "passes_seconds": 0.11496539996005595
+        },
+        {
+          "construction_seconds": 0.12156679993495345,
+          "passes_seconds": 0.09456720005255193
+        },
+        {
+          "construction_seconds": 0.11874679999891669,
+          "passes_seconds": 0.13022129994351417
+        }
+      ]
+    }
+  ]
+}

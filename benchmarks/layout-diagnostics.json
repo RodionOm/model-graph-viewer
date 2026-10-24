@@ -1,0 +1,26 @@
+{
+  "model": "OpenVINO/TinyLlama-1.1B-Chat-v1.0-fp16-ov",
+  "revision": "88a9e6bbe7f9f8cf4e61ac96eed57ec164ad46f5",
+  "date": "2026-10-24",
+  "runs": [
+    {
+      "layout": "default",
+      "status": "timeout",
+      "timeout_seconds": 600,
+      "svg_produced": false
+    },
+    {
+      "layout": "probe: nslimit=2, nslimit1=2",
+      "status": "timeout",
+      "timeout_seconds": 60,
+      "svg_produced": false
+    },
+    {
+      "layout": "probe: nslimit=0.5, nslimit1=0.5, mclimit=0.25, splines=polyline",
+      "status": "timeout",
+      "timeout_seconds": 120,
+      "svg_produced": false
+    }
+  ],
+  "notes": "Diagnostic trials, not successful render times. Some trials overlapped checks/another layout. Native verbose output reported 422151 internal positioning nodes and 631894 internal edges. Full successful measurements with splines=line are in tinyllama.json."
+}

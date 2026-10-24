@@ -1,0 +1,228 @@
+{
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.10",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "logical_cpus": 16,
+    "openvino": "2026.4.1",
+    "python_graphviz": "0.21",
+    "graphviz": "dot - graphviz version 16.1.0 (20260904.0139)",
+    "physical_memory_bytes": 8183242752
+  },
+  "method": "One run per variant; baseline first, then transformed. Files are hashed before timing, so OS file caching is warm. No model compilation. Read and construction measured separately; pass times include validation; render includes DOT, native dot, SVG validation and file write. Times are measurements, not guarantees. Native peak memory is not measured.",
+  "models": [
+    {
+      "xml": {
+        "path": "models/mlp.xml",
+        "size_bytes": 4218,
+        "sha256": "1250f6fcddf4be656c89c6723cbe7747f2603b9539fc25fe5c08a2b9e8cd8d99"
+      },
+      "weights": {
+        "path": "models/mlp.bin",
+        "size_bytes": 92,
+        "sha256": "2ce1630cdca4ec5a2300eaf44ee80c93b07d846b212d54e84c6b61a5a554ca13"
+      },
+      "runs": [
+        {
+          "variant": "before",
+          "layout": "default",
+          "status": "success",
+          "error": null,
+          "before": {
+            "nodes": 11,
+            "edges": 10
+          },
+          "after": {
+            "nodes": 11,
+            "edges": 10
+          },
+          "highlight_names": [],
+          "read_seconds": 0.008289800025522709,
+          "construction_seconds": 0.00106669997330755,
+          "loading_seconds": 0.009356499998830259,
+          "passes_seconds": 4.00003045797348e-07,
+          "pass_timings": [],
+          "rendering_seconds": 0.17921390000265092,
+          "svg": "artifacts/benchmark-svg/mlp_before.svg",
+          "svg_size_bytes": 18123
+        },
+        {
+          "variant": "after",
+          "layout": "default",
+          "status": "success",
+          "error": null,
+          "before": {
+            "nodes": 11,
+            "edges": 10
+          },
+          "after": {
+            "nodes": 7,
+            "edges": 6
+          },
+          "highlight_names": [
+            "dense1"
+          ],
+          "read_seconds": 0.0029450999572873116,
+          "construction_seconds": 0.0006801999406889081,
+          "loading_seconds": 0.0036252998979762197,
+          "passes_seconds": 0.00016000005416572094,
+          "pass_timings": [
+            {
+              "pass": "HighlightPass",
+              "seconds": 4.9900030717253685e-05
+            },
+            {
+              "pass": "HideConstantsPass",
+              "seconds": 0.0001066999975591898
+            }
+          ],
+          "rendering_seconds": 0.47995770000852644,
+          "svg": "artifacts/benchmark-svg/mlp_after.svg",
+          "svg_size_bytes": 12055
+        }
+      ]
+    },
+    {
+      "xml": {
+        "path": "models/branching.xml",
+        "size_bytes": 3624,
+        "sha256": "bc0bb980f9edc06b269dd298782ed6b0efcf8fe088c8f9f4b0bdd6119311d86a"
+      },
+      "weights": {
+        "path": "models/branching.bin",
+        "size_bytes": 16,
+        "sha256": "6f83c71aa0955c3fc5e27bedaf2a1eaa9f1d4666092c67431658349203e79ca4"
+      },
+      "runs": [
+        {
+          "variant": "before",
+          "layout": "default",
+          "status": "success",
+          "error": null,
+          "before": {
+            "nodes": 9,
+            "edges": 10
+          },
+          "after": {
+            "nodes": 9,
+            "edges": 10
+          },
+          "highlight_names": [],
+          "read_seconds": 0.003047599922865629,
+          "construction_seconds": 0.00061039999127388,
+          "loading_seconds": 0.003657999914139509,
+          "passes_seconds": 5.00003807246685e-07,
+          "pass_timings": [],
+          "rendering_seconds": 0.4701264000032097,
+          "svg": "artifacts/benchmark-svg/branching_before.svg",
+          "svg_size_bytes": 15882
+        },
+        {
+          "variant": "after",
+          "layout": "default",
+          "status": "success",
+          "error": null,
+          "before": {
+            "nodes": 9,
+            "edges": 10
+          },
+          "after": {
+            "nodes": 7,
+            "edges": 7
+          },
+          "highlight_names": [
+            "split"
+          ],
+          "read_seconds": 0.003156100050546229,
+          "construction_seconds": 0.0006110999966040254,
+          "loading_seconds": 0.0037672000471502542,
+          "passes_seconds": 0.00010990002192556858,
+          "pass_timings": [
+            {
+              "pass": "HighlightPass",
+              "seconds": 4.47999918833375e-05
+            },
+            {
+              "pass": "HideConstantsPass",
+              "seconds": 6.38000201433897e-05
+            }
+          ],
+          "rendering_seconds": 0.5825247000902891,
+          "svg": "artifacts/benchmark-svg/branching_after.svg",
+          "svg_size_bytes": 12360
+        }
+      ]
+    },
+    {
+      "xml": {
+        "path": "models/synthetic_5002.xml",
+        "size_bytes": 1881251,
+        "sha256": "007087b58f89766e590c4918f5289d5c06be640ec7f19062983646d5db83b8d7"
+      },
+      "weights": {
+        "path": "models/synthetic_5002.bin",
+        "size_bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "runs": [
+        {
+          "variant": "before",
+          "layout": "default",
+          "status": "success",
+          "error": null,
+          "before": {
+            "nodes": 5002,
+            "edges": 5001
+          },
+          "after": {
+            "nodes": 5002,
+            "edges": 5001
+          },
+          "highlight_names": [],
+          "read_seconds": 0.10375750006642193,
+          "construction_seconds": 0.23148780001793057,
+          "loading_seconds": 0.3352453000843525,
+          "passes_seconds": 1.200009137392044e-06,
+          "pass_timings": [],
+          "rendering_seconds": 2.07290849997662,
+          "svg": "artifacts/benchmark-svg/synthetic_5002_before.svg",
+          "svg_size_bytes": 7864270
+        },
+        {
+          "variant": "after",
+          "layout": "default",
+          "status": "success",
+          "error": null,
+          "before": {
+            "nodes": 5002,
+            "edges": 5001
+          },
+          "after": {
+            "nodes": 5002,
+            "edges": 5001
+          },
+          "highlight_names": [
+            "relu_0"
+          ],
+          "read_seconds": 0.08377169992309064,
+          "construction_seconds": 0.20987280004192144,
+          "loading_seconds": 0.2936444999650121,
+          "passes_seconds": 0.04106279998086393,
+          "pass_timings": [
+            {
+              "pass": "HighlightPass",
+              "seconds": 0.028310099965892732
+            },
+            {
+              "pass": "HideConstantsPass",
+              "seconds": 0.012746499967761338
+            }
+          ],
+          "rendering_seconds": 1.9440114999888465,
+          "svg": "artifacts/benchmark-svg/synthetic_5002_after.svg",
+          "svg_size_bytes": 7864273
+        }
+      ]
+    }
+  ]
+}

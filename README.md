@@ -14,8 +14,8 @@ The package setup, environment check, framework-independent graph API, OpenVINO
 IR loader, transformation pipeline, highlighting, and constant hiding are
 implemented and tested, together with port-aware SVG rendering, a public Python
 API, and the model-to-SVG CLI.
-Stages 1–8 of the implementation plan are complete. The current suite passes
-250 tests, including real OpenVINO-to-SVG and API/CLI integration cases. Lint and formatting checks
+Stages 1–9 of the implementation plan are complete. The current suite passes
+254 tests, including real OpenVINO-to-SVG and API/CLI integration cases. Lint and formatting checks
 also pass. Earlier setup checks verified the Graphviz SVG backend and installation
 of a built wheel independently of the editable source checkout.
 The original [starter_code.py](starter_code.py) is preserved as a standalone
@@ -669,11 +669,84 @@ same API available to Python users.
 
 ## Remaining deliverables
 
-- Measured performance report, including graphs of 5000+ nodes.
-- Final API documentation, extension examples, and known limitations.
+- Final clean-environment verification and submission review.
 
-TinyLlama SVGs are available; the performance report and final clean-environment
-verification are the next stages.
+The required models, SVGs, extension examples and measured performance are available.
+
+## Performance
+
+Measured on 2026-10-24: Intel Core i5-1240P (16 logical CPUs), OS-reported
+7.62 GiB RAM, Windows 11 build 26200, Python 3.12.10, OpenVINO 2026.4.1,
+Python graphviz 0.21, native Graphviz 16.1.0. No model compilation or inference
+was performed. The environment and full measurements are saved in
+[tinyllama.json](benchmarks/tinyllama.json),
+[small-and-scale.json](benchmarks/small-and-scale.json), and
+[scaling.json](benchmarks/scaling.json).
+
+Times below are seconds. Load includes reading IR and constructing the independent
+graph; the JSON also separates these. Pass time includes validation. Render
+includes DOT generation, native layout, SVG validation and file writing.
+
+| Model / variant | Nodes | Edges | Load | Passes | Render |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| MLP / original | 11 | 10 | 0.0094 | — | 0.1792 |
+| MLP / transformed | 7 | 6 | 0.0036 | 0.0002 | 0.4800 |
+| Branching / original | 9 | 10 | 0.0037 | — | 0.4701 |
+| Branching / transformed | 7 | 7 | 0.0038 | 0.0001 | 0.5825 |
+| TinyLlama / original, fast layout | 3216 | 3789 | 0.3130 | — | 25.4523 |
+| TinyLlama / transformed, fast layout | 1957 | 2477 | 0.3254 | 0.0252 | 13.3849 |
+| Synthetic ReLU chain / original | 5002 | 5001 | 0.3352 | — | 2.0729 |
+| Synthetic ReLU chain / transformed | 5002 | 5001 | 0.2936 | 0.0411 | 1.9440 |
+
+These are one measured run per variant, with the original first, not averages.
+Files were hashed before timing, so OS file caching was warm. Download/export and
+hash verification, process startup and imports are excluded. The synthetic chain contains no Constants;
+its transformed case exercises validation/highlighting without reducing the graph.
+It is a scale fixture, not a substitute for the real TinyLlama run. The fast
+layout changes geometry/routing only. The small/chain cases use default layout.
+
+The main bottleneck on TinyLlama is Graphviz. Default layout did **not finish
+within 600 seconds**; a bounded polyline-routing trial also timed out at 120
+seconds. These are unsuccessful trials, recorded in
+[layout-diagnostics.json](benchmarks/layout-diagnostics.json), not successful
+render times. Verbose Graphviz output showed 422,151 internal positioning nodes
+and 631,894 internal edges created around long-range connections. Limiting
+optimization alone was insufficient; straight routing made the complete SVG
+practical, at the cost of crossings through nodes/labels. Some diagnostic trials
+overlapped other checks; they should not be treated as controlled speed ratios.
+
+Separate processing-only measurements use an Add chain sharing one Constant
+(three runs per size, medians; no rendering):
+
+| Nodes before | Edges before | Construct graph | Highlight + hide |
+| ---: | ---: | ---: | ---: |
+| 1002 | 2000 | 0.0086 | 0.0072 |
+| 5002 | 10000 | 0.0411 | 0.0549 |
+| 10002 | 20000 | 0.1187 | 0.1150 |
+
+This supports approximately linear graph/pass processing over these sizes.
+Adjacency indexes avoid full-graph searches per edge; passes operate in place
+and carry shape/type records, not tensor values. The viewer does not copy the
+model weights. Native OpenVINO/Graphviz storage is separate: a process snapshot
+during the failed default layout showed roughly 0.59 GB of `dot` working set.
+This is **not a peak-memory measurement** or total application memory. Python-only
+memory counters would miss native allocations and mapped weight storage.
+
+Reproduce measurements explicitly (large jobs are never part of ordinary pytest):
+
+```sh
+python scripts/create_example_models.py
+python scripts/download_tinyllama.py
+python scripts/benchmark_scaling.py
+python scripts/benchmark.py --model models/mlp.xml --model models/branching.xml --model models/synthetic_5002.xml --output-dir artifacts/benchmark-svg --report benchmarks/small-and-scale.json
+python scripts/benchmark.py --model models/tinyllama/openvino_model.xml --layout fast --timeout 180 --report benchmarks/tinyllama.json
+```
+
+The benchmark saves a failed status and error, without a claimed SVG, if rendering
+fails; it returns exit code 1. Successful timings vary with machine load, caches,
+fonts and Graphviz versions. Future improvements could expose focused subgraphs
+or collapse carefully defined patterns to reduce long-range edges; these are not
+implemented, and would need separate correctness tests.
 
 ## Known limitations
 
