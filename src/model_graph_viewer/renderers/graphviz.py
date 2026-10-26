@@ -126,6 +126,8 @@ class GraphvizRenderer:
         references: tuple[Edge, ...] = (),
         output_counts: dict[int, int] | None = None,
         names: dict[str, str] | None = None,
+        op_types: dict[str, str] | None = None,
+        parameter_names: dict[str, str] | None = None,
     ) -> str:
         fill = node.visualization.get("fillcolor", _FILLCOLORS.get(node.op_type, "#f8fafc"))
         border = node.visualization.get("border_color", "#64748b")
@@ -133,9 +135,15 @@ class GraphvizRenderer:
             raise RenderError(f"Node {node.node_id!r} colors must be strings.")
         width = "3" if "border_color" in node.visualization else "1"
         rows = [self._ports(node.input_ports, "in")]
+        # Keep model boundary names useful without letting them widen compact nodes.
+        name_limit = min(self.max_label_length, 32) if self.compact else self.max_label_length
+        short_name = (
+            node.name if len(node.name) <= name_limit else node.name[: name_limit - 3] + "..."
+        )
+        show_name = not self.compact or node.op_type in {"Parameter", "Result"}
         rows.append(
             f"<TR><TD><B>{_html(self._short(node.op_type))}</B><BR/>"
-            + ("" if self.compact else f"{_html(self._short(node.name))}<BR/>")
+            + (f"{_html(short_name)}<BR/>" if show_name else "")
             + f'<FONT POINT-SIZE="9">ID: {_html(node.node_id)}</FONT></TD></TR>'
         )
         for key, value in () if self.compact else node.attributes.items():
@@ -160,7 +168,16 @@ class GraphvizRenderer:
         for port in sorted(hidden):
             rows.append(f'<TR><TD ALIGN="LEFT">{_html(str(hidden[port]))}</TD></TR>')
         for edge in sorted(references, key=lambda edge: edge.to_port):
-            source = f"in {edge.to_port} &#8592; ID: {_html(edge.from_node)} / out {edge.from_port}"
+            input_name = (parameter_names or {}).get(edge.from_node)
+            if input_name:
+                limit = min(self.max_label_length, 32)
+                source_name = (
+                    input_name if len(input_name) <= limit else input_name[: limit - 3] + "..."
+                )
+                origin = _html(source_name)
+            else:
+                origin = f"#{_html(edge.from_node)} {_html(self._short(op_types[edge.from_node]))}"
+            source = f"in {edge.to_port} &#8592; {origin} : out {edge.from_port}"
             rows.append(
                 f'<TR><TD ALIGN="LEFT" BGCOLOR="#eff6ff" HREF="#node_{names[edge.from_node]}" '
                 f'TOOLTIP="{escape("Jump to source node " + edge.from_node)}">'
@@ -213,6 +230,23 @@ class GraphvizRenderer:
             # ports are retained; only position optimization and edge routes change.
             dot.graph_attr.update(nslimit="0.5", nslimit1="0.5", mclimit="0.25", splines="line")
         names = {node_id: f"n{index}" for index, node_id in enumerate(graph.nodes)}
+        op_types = {node.node_id: node.op_type for node in graph.nodes.values()}
+        parameter_names = {
+            node.node_id: node.name for node in graph.nodes.values() if node.op_type == "Parameter"
+        }
+        # Measured on TinyLlama: aligning the direct Add->Add backbone removes
+        # cumulative horizontal drift. This is only a compact-view layout hint.
+        residual_nodes = (
+            {
+                node_id
+                for edge in graph.edges.values()
+                if op_types[edge.from_node] == op_types[edge.to_node] == "Add"
+                and not graph.nodes[edge.from_node].visualization.get("reference_fanout", False)
+                for node_id in (edge.from_node, edge.to_node)
+            }
+            if self.compact
+            else set()
+        )
         references: dict[str, list[Edge]] = {}
         output_counts: dict[str, dict[int, int]] = {}
         for node in graph.nodes.values():
@@ -245,9 +279,12 @@ class GraphvizRenderer:
                     references=tuple(references.get(node.node_id, ())),
                     output_counts=output_counts.get(node.node_id),
                     names=names,
+                    op_types=op_types,
+                    parameter_names=parameter_names,
                 ),
                 id=f"node_{name}",
                 **({"tooltip": node.name} if self.compact else {}),
+                **({"group": "residual_backbone"} if node.node_id in residual_nodes else {}),
             )
         for index, edge in enumerate(graph.edges.values()):
             if graph.nodes[edge.from_node].visualization.get("reference_fanout", False):

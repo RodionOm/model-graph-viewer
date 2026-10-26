@@ -1,10 +1,14 @@
 # Model Graph Viewer
 
-A Python library and command-line tool for inspecting neural network computational
-graphs. The pipeline loads an OpenVINO IR model, builds a framework-independent
-graph, applies ordered visualization passes, and exports an SVG.
+A Python library and CLI that turns an OpenVINO IR neural network into a readable SVG with optional JSON details.
 
-Development follows the requirements in [assignment.pdf](assignment.pdf).
+After [setup](#setup), run `python -m model_graph_viewer --model model.xml --output graph.svg --compact --passes hide-constants,fanout-references`.
+
+See the [before-and-after comparison](examples/readability-comparison.png).
+On TinyLlama: **3,789 connections preserved**; canvas width **13,635 → 2,190 pt**;
+median node width **−76%** versus the original labels.
+See [Known limitations](#known-limitations).
+
 The [implementation plan](IMPLEMENTATION_PLAN.md) tracks each stage and its acceptance
 checks.
 
@@ -16,11 +20,9 @@ implemented and tested, together with port-aware SVG rendering, a public Python
 API, and the model-to-SVG CLI.
 All ten implementation stages are complete, with the limitations documented below.
 The current suite passes
-280 tests, including real OpenVINO-to-SVG and API/CLI integration cases. Lint and formatting checks
+288 tests, including real OpenVINO-to-SVG and API/CLI integration cases. Lint and formatting checks
 also pass. Earlier setup checks verified the Graphviz SVG backend and installation
 of a built wheel independently of the editable source checkout.
-The original [starter_code.py](starter_code.py) is preserved as a standalone
-Graphviz example.
 
 The readability follow-up adds compact labels with a JSON sidecar and a configurable
 fan-out reference pass. See the [investigation and comparison](#readability-follow-up)
@@ -102,8 +104,7 @@ optional for users exporting their own models with Optimum Intel; it is not need
 for the checked examples. TinyLlama is downloaded as a pinned, pre-exported IR
 using the standard-library script below. No PyTorch/export stack is required.
 
-Each completed implementation stage is tested, committed separately, and pushed
-to this repository. Generated local models, virtual environments, and temporary
+Generated models, virtual environments, and temporary
 artifacts are excluded from Git.
 
 The integration tests generate small XML/BIN models in pytest's temporary
@@ -195,19 +196,25 @@ an existing SVG, and no model or weight file is modified.
 
 For large models, use `--compact --passes hide-constants,fanout-references`.
 Compact labels show the operation type, full node ID, ports, tensor records and
-notes; names and ordinary operation attributes move to a companion JSON file.
-Names remain available as hover tooltips. The default detailed labels are unchanged.
+notes. Parameter and Result names remain visible, capped at 32 characters (or a
+smaller `max_label_length`); names of other operations are hidden. Full names and
+ordinary operation attributes are in the companion JSON. Names also remain
+available as hover tooltips. The default detailed labels are unchanged.
 
 The `fanout-references` pass selects nodes with **more than three outgoing edges**
 across their output ports. Use `--fanout-threshold N` to change this strict threshold.
 Each selected source shows per-output reference counts. Every consumer shows a blue
-`in P <- ID: S / out Q` record with the tensor type/shape. Click that record in a
+`in P <- #S SourceOp : out Q` record with the tensor type/shape. For a Parameter
+source, its input name replaces the ID/type, for example `in 0 ← beam_idx : out 0`.
+Input names use the same 32-character cap; an empty name falls back to ID/type.
+The link and JSON always retain the full source ID, even when names repeat.
+Click that record in a
 standalone SVG opened in a browser to jump to the source. An embedded image or GitHub
 preview may disable links; download/open the SVG directly to navigate it.
 
 This pass marks visualization metadata; **every edge remains in `Graph.edges`**.
 Only its drawn arrow is suppressed. Multiple outputs, parallel connections and
-duplicate node names remain distinct because references use IDs and both ports.
+duplicate node names remain distinct because reference links and JSON use IDs and both ports.
 Use it after `hide-constants` so fan-out is measured on the graph being drawn.
 Reapplying the pass recomputes the selection without duplicating records.
 
@@ -480,9 +487,15 @@ or Graphviz.
 
 ## Extensibility
 
-Passes and model adapters can be added without editing API, CLI, graph, or renderer
-code. There is no global plugin registry or automatic discovery. Python callers
-pass objects; CLI callers explicitly select an importable `module:factory`.
+Passes and model adapters can be added without editing API, CLI, or graph code.
+Passes avoid renderer changes when they reuse existing visualization keys such as
+`border_color`, `fillcolor`, and `note`. `FanoutReferencesPass` needed dedicated
+renderer support for the `reference_fanout` key. A possible redesign (not implemented)
+would store ready-made reference records in visualization metadata so the renderer
+only draws generic text rows.
+
+There is no global plugin registry or automatic discovery. Python callers pass
+objects; CLI callers explicitly select an importable `module:factory`.
 
 For a new format, implement `load(model_path) -> Graph` and pass an instance:
 
@@ -729,10 +742,13 @@ modifies the graph.
 ## Architecture
 
 ```text
-OpenVINO XML + BIN -> Loader -> Graph -> Transformation pipeline -> Renderer -> SVG
-                                             ^
-                                             |
-                                   Highlight / Hide constants
+OpenVINO XML + BIN -> Loader -> Graph -> Pipeline
+                                         |
+                     Highlight / Hide constants / Fan-out references
+                                         |
+                                         v
+                      Renderer (optional compact mode) -> SVG
+                                                      -> JSON sidecar (compact mode)
 ```
 
 The graph owns ordinary Python data, with unique node IDs independent of
@@ -743,10 +759,16 @@ same API available to Python users.
 
 ## Verification
 
-The 2026-10-26 readability update passes **280 tests with no skips** both from the
+The second readability update passes **288 tests with no skips**, including native Graphviz
+integration tests. Ruff lint and formatting pass. All ten SVG examples were
+regenerated; SVG/JSON hashes match and all original TinyLlama connections are
+recoverable. See the `readability_update_2` entry in
+[readability-verification.json](benchmarks/readability-verification.json).
+
+The first readability update at `04b4289` passed **280 tests with no skips** both from the
 source environment and from an installed wheel in the separate verification venv.
-The wheel's 20 Python source files match the checkout. The installed CLI reproduced
-the updated TinyLlama SVG/JSON and the small fan-out SVG pair/JSON byte for byte.
+That wheel's 20 Python source files matched its checkout. The installed CLI reproduced
+the first follow-up's TinyLlama SVG/JSON and small fan-out SVG pair/JSON byte for byte.
 Ruff checks pass; all 3789 original TinyLlama port connections are recovered from
 the exported data, and XML/BIN hashes are unchanged. The SVGs were reviewed in Edge.
 See [readability-verification.json](benchmarks/readability-verification.json).
@@ -784,34 +806,88 @@ which span distant parts of the model. Removing Constant boxes alone did not rem
 these connections. The previous fast layout drew straight lines across blocks and
 labels, while long operation names made the blocks wide.
 
-The new pass replaces those arrows with clickable source-ID/output-port references
+The new pass replaces those arrows with clickable source/output-port references
 on each consumer input. Source nodes remain visible and display counts per output.
 All 2477 graph edges remain intact; 2205 arrows and 272 reference records represent
 them in the SVG. JSON also stores every connection and the full omitted attributes.
 The benchmark reconstructs **all 3789 original port connections**, combining the
 edge list with hidden-constant records, and checks that XML/BIN hashes are unchanged.
 
-![The same TinyLlama projection at the same scale, before and after the readability changes](examples/readability-comparison.png)
+![Top screenful of TinyLlama before and after at the same fit-to-width window size, plus enlarged original and compact labels for three nodes with a red highlight border on MatMul](examples/readability-comparison.png)
 
-This crop is a browser capture of the actual full SVGs, centered on node 43, the
-first query projection. It illustrates local readability, not a smaller model.
+The upper pair shows what you see when opening each SVG at fit-to-width in the same
+window: the top screenful, cropped to a 16:10 viewport with no vertical compression.
+The canvas widths are 13,635 pt before and 2,190 pt after, giving 6.2× larger rendering
+at the same window width. The lower pair shows enlarged individual excerpts of
+Convert #42, MatMul #43 and Reshape #45 with original versus compact labels, all at
+the same scale. The red MatMul border is from the highlight pass. Surrounding nodes
+and arrows are omitted in these excerpts. Names, attributes and every connection
+remain available in JSON.
+
+Recreate the PNG with `python scripts/render_comparison.py`. This requires Edge,
+Chrome or Chromium (use `--browser PATH` if it is not detected), the current SVG/JSON,
+and Git history containing `04b4289` (previous overview) and `028ef46` (original labels).
+The script reads those revisions from the existing checkout; it does not fetch them.
 
 Measurements on 2026-10-26, same Windows machine and dependency versions as below:
 
 | Variant | Layout | Drawn arrows | References | Median node width (pt) | Render/export (s) |
 | --- | --- | ---: | ---: | ---: | ---: |
-| Previous labels and constant hiding | fast | 2477 | 0 | 282.50 | 17.164 |
-| Compact labels only | fast | 2477 | 0 | 59.76 | 19.671 |
-| Compact labels + fan-out references | default | 2205 | 272 | 68.00 | 9.188 |
+| Previous labels and constant hiding | fast | 2477 | 0 | 282.50 | 24.590 |
+| Compact labels + backbone group | fast | 2477 | 0 | 59.75 | 21.813 |
+| Compact labels + references + backbone group | default | 2205 | 272 | 68.00 | 3.005 |
 
 All variants contain the same 1957 operations. The final median block width is about
-76% smaller. Compact labels alone leave the crossing arrows in place; removing the
-high-fan-out arrows enables ordinary spline routing to finish in this measured run.
-The reference pass, including validation, took 0.051 seconds. These are individual
-sequential measurements, not averages or a guaranteed speedup; compact export includes
-JSON writing. The overall canvas is still large and becomes slightly wider with
-the final routing (13635 pt versus 13267 pt), despite narrower individual blocks.
+76% smaller. Compact labels and a backbone group without references leave the
+high-fan-out arrows in place. The final view combines references, compact labels
+and a shared Graphviz group on visible Add-to-Add endpoints, with ordinary spline
+routing. These are individual sequential measurements, not averages or a guaranteed
+speedup; compact export includes JSON writing.
 The full metrics and method are in [readability.json](benchmarks/readability.json).
+
+The second readability experiment investigated diagonal drift. There are 22 direct
+Add-to-Add residual connections within decoder layers and 21 between layers: 43
+edges joining a 44-node backbone. All five trials used identical first-follow-up
+labels and default layout; only the hints below changed:
+
+| Layout hint | Canvas width (pt) | Canvas height (pt) |
+| --- | ---: | ---: |
+| None (first readability follow-up) | 13635 | 142335 |
+| Weight 10 on 22 within-layer edges | 11442 | 142335 |
+| Weight 10 on all 43 backbone edges | 3389 | 142335 |
+| Shared group on the 44 backbone nodes | 2032 | 142335 |
+| Shared group plus weight 10 | 2032 | 142335 |
+
+Only the **shared group** was retained. Adding weight gave no further improvement.
+This is a layout hint in compact mode, not a change to graph connectivity or a
+promise of identical behavior for every model. It uses operation types, not names.
+With source-type references, named input references and boundary names, the final
+canvas measures **2190 × 142346 pt**, versus **13635 × 142335 pt** in the first
+follow-up: about 6.2 times narrower. The height is effectively unchanged.
+
+The table below spans node boxes intersecting each of ten equal-height horizontal
+bands, from top to bottom. Width is `max(x_right) - min(x_left)`, including gaps
+between nodes; it excludes arrows and outer canvas margins. SVG group translation
+is included. These are band extents, not single-height slices.
+
+| Band | Before v2: width (pt) | Final v2: width (pt) |
+| --- | ---: | ---: |
+| 1 | 2350.00 | 2011.38 |
+| 2 | 2370.00 | 1320.50 |
+| 3 | 1931.00 | 1272.50 |
+| 4 | 1936.00 | 1344.50 |
+| 5 | 2087.00 | 1330.50 |
+| 6 | 2305.00 | 1308.50 |
+| 7 | 2393.88 | 1344.50 |
+| 8 | 2126.38 | 1326.50 |
+| 9 | 2042.50 | 1326.50 |
+| 10 | 1951.00 | 1410.00 |
+
+All five controlled trials, x/y bounds, band node counts and width fractions are
+stored under `diagonal_drift` in the JSON report; final metrics are in
+`variants[compact_references]`. To repeat the hint experiment with the **current**
+labels, run `python scripts/benchmark_readability.py --drift-experiment`.
+This replaces the controlled-trial record with results for those current labels.
 
 Reproduce the three variants and updated TinyLlama SVG/JSON:
 
@@ -837,9 +913,18 @@ python scripts/render_fanout_example.py
 References trade immediate visual tracing for a lookup/click. Suppressed edges do
 not constrain layout ranks, so their sources can appear in separate visual regions.
 The graph remains fully represented but is not a complete arrow-only drawing.
-An adjustable threshold lets users choose that tradeoff. Future extensions could
-add a searchable viewer or focused subgraphs, or collapse well-defined repeated
-blocks while exposing their boundary ports. Those are not implemented here.
+An adjustable threshold lets users choose that tradeoff.
+
+#### Remaining limitations and next steps (not implemented)
+
+The full graph is still very tall and references need a click or a JSON lookup.
+The following improvements are proposals, not available features:
+
+- Cluster the operations of each decoder layer so layer boundaries are visible.
+- Collapse the 22 repeated decoder layers into one block, retaining per-layer
+  metadata and the connections at its boundaries.
+- Add a CLI option to render one decoder layer or a selected subgraph, with
+  references to connections outside that view.
 
 ### Initial submission measurements
 
@@ -928,6 +1013,10 @@ implemented, and would need separate correctness tests.
 - Constant hiding stops at the immediate consumer. In a fp16
   `Constant -> Convert -> MatMul` chain, the weight record appears on `Convert`;
   the conversion node remains visible. This pass does not collapse such patterns.
+  On fp16 TinyLlama, **428 of 1,957 visible nodes** are Convert nodes with hidden
+  Constant inputs; 155 of these directly feed MatMul. A possible next step
+  (**not implemented**) is a pass that folds `Constant -> Convert` into the
+  consumer's hidden-constant annotation while retaining conversion metadata.
 - A highlighted Constant disappears when hidden. "Shared" counts distinct
   consumer operations, so one operation using a Constant twice has two records
   without a shared marker. Both behaviors are deliberate and tested.

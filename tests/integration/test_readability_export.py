@@ -43,9 +43,11 @@ def test_compact_fanout_svg_and_sidecar_preserve_real_model(tmp_path):
     svg = ElementTree.fromstring(output.read_bytes())
     ns = {"s": "http://www.w3.org/2000/svg"}
     text = " ".join(t.text or "" for t in svg.findall(".//s:text", ns))
-    assert "long input name" not in text
+    assert ("long input name " * 20) not in text
+    assert ("long input name " * 20)[:29] + "..." in text
     assert "branch 0" not in text
-    assert "in 0 ← ID:" in text
+    assert "in 0 ← " + ("long input name " * 20)[:29] + "... : out 0" in text
+    assert "Parameter : out 0" not in text
     assert 'stroke="red"' in output.read_text(encoding="utf-8")
     svg_nodes = {g.attrib["id"] for g in svg.findall(".//s:g[@class='node']", ns)}
     assert svg_nodes == {n["svg_id"] for n in details["nodes"].values()}

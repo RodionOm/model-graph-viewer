@@ -70,7 +70,7 @@ def test_parallel_edges_and_self_loop_are_counted_without_losing_ports():
     dot = GraphvizRenderer().to_dot(graph).source
     assert " -> " not in dot
     for port in range(3):
-        assert f"in {port} &#8592; ID: s / out 4" in dot
+        assert f"in {port} &#8592; #s Custom : out 4" in dot
     assert "4 reference(s)" in dot
     graph.remove_edge("s", 0)
     FanoutReferencesPass().apply(graph)
@@ -87,6 +87,7 @@ def test_compact_labels_full_metadata_and_render_are_nonmutating():
     assert "long:" not in dot
     assert "duplicate<BR" not in dot
     assert 'HREF="#node_n0"' in dot
+    assert "#source:&lt;&gt; Custom : out 7" in dot
     assert "fp32[1..8, ?]" in dot
     assert " -> " not in dot
     metadata = json.loads(json.dumps(renderer.metadata(graph)))
@@ -230,3 +231,61 @@ def test_invalid_readability_cli_options(options):
 def test_json_output_cannot_overwrite_custom_input():
     with pytest.raises(ConfigurationError, match="overwrite"):
         api.visualize("input.json", "output.svg", metadata_path="input.json")
+
+
+def test_compact_boundary_names_are_short_and_other_names_are_hidden():
+    renderer = GraphvizRenderer(compact=True)
+    for op_type in ("Parameter", "Result"):
+        node = Node("p", "attention_mask", op_type)
+        assert "attention_mask<BR/>" in renderer._label(node)
+        long = Node("r", "output_" * 30, op_type)
+        assert long.name[:29] + "...<BR/>" in renderer._label(long)
+        assert renderer.metadata(Graph([long]))["nodes"]["r"]["name"] == long.name
+    assert "attention_mask" not in renderer._label(Node("m", "attention_mask", "MatMul"))
+
+
+def test_compact_group_hint_only_marks_visible_add_to_add_endpoints():
+    graph = Graph(
+        [
+            Node("a", "a", "Add", output_ports=(0,)),
+            Node("b", "b", "Add", input_ports=(0,), output_ports=(0,)),
+            Node("c", "c", "MatMul", input_ports=(0,)),
+        ],
+        [Edge("a", 0, "b", 0), Edge("b", 0, "c", 0)],
+    )
+    before = copy.deepcopy((dict(graph.nodes), dict(graph.edges)))
+    source = GraphvizRenderer(compact=True).to_dot(graph).source
+    assert source.count("group=residual_backbone") == 2
+    assert "weight=10" not in source
+    assert "group=residual_backbone" not in GraphvizRenderer().to_dot(graph).source
+    assert (dict(graph.nodes), dict(graph.edges)) == before
+    graph.nodes["a"].visualization["reference_fanout"] = True
+    assert "group=residual_backbone" not in GraphvizRenderer(compact=True).to_dot(graph).source
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        ("beam_idx", "beam_idx"),
+        ("attention_mask", "attention_mask"),
+        ("long_input_" * 8, ("long_input_" * 8)[:29] + "..."),
+        ("input<&>", "input&lt;&amp;&gt;"),
+        ("", "#input Parameter"),
+    ],
+)
+def test_parameter_references_use_bounded_names_and_retain_identity(name, expected):
+    graph = Graph(
+        [
+            Node("input", name, "Parameter", output_ports=(7,)),
+            Node("a", "consumer", "Add", input_ports=(0, 1)),
+        ],
+        [Edge("input", 7, "a", p) for p in (0, 1)],
+    )
+    FanoutReferencesPass(threshold=1).apply(graph)
+    renderer = GraphvizRenderer(compact=True)
+    dot = renderer.to_dot(graph).source
+    for port in (0, 1):
+        assert f"in {port} &#8592; {expected} : out 7" in dot
+    assert dot.count('HREF="#node_n0"') == 2
+    assert renderer.metadata(graph)["nodes"]["input"]["name"] == name
+    assert {e["from_node"] for e in renderer.metadata(graph)["edges"]} == {"input"}

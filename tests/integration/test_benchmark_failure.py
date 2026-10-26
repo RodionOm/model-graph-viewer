@@ -46,3 +46,26 @@ def test_benchmark_reports_failed_layouts_without_claiming_svg_success(tmp_path,
         assert result["svg"] is None
         assert result["svg_size_bytes"] is None
         assert result["rendering_seconds"] >= 0
+
+
+def test_band_measurements_use_node_boxes_and_graph_translation(tmp_path, monkeypatch):
+    scripts = Path(__file__).resolve().parents[2] / "scripts"
+    monkeypatch.syspath_prepend(str(scripts))
+    metrics = runpy.run_path(str(scripts / "benchmark_readability.py"))["svg_metrics"]
+    svg = tmp_path / "bands.svg"
+    svg.write_text(
+        """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <g transform="scale(1 1) rotate(0) translate(10 100)">
+      <g class="node"><polygon points="0,-100 20,-100 20,-91 0,-91"/></g>
+      <g class="node"><polygon points="50,-95 60,-95 60,-85 50,-85"/></g>
+      <g class="edge"><path d="M0,0L999,999"/></g>
+    </g></svg>""",
+        encoding="utf-8",
+    )
+    bands = metrics(svg)["horizontal_bands"]
+    assert len(bands) == 10
+    assert (bands[0]["x_min"], bands[0]["x_max"], bands[0]["width"]) == (10, 70, 60)
+    assert bands[0]["node_count"] == 2
+    assert bands[0]["fraction_of_canvas"] == 0.6
+    assert bands[1]["width"] == 10  # Second box intersects both first and second bands.
+    assert all(b["width"] == b["node_count"] == 0 for b in bands[2:])

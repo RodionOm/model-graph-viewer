@@ -25,7 +25,7 @@
       "name": "previous",
       "layout": "fast",
       "compact": false,
-      "render_seconds": 17.163664299994707,
+      "render_seconds": 24.59011659992393,
       "reference_pass_seconds": 0,
       "all_original_connections_recovered": true,
       "graph_edges": 2477,
@@ -39,40 +39,244 @@
         13267.0,
         161676.0
       ],
+      "horizontal_bands": [
+        {
+          "band": 1,
+          "y_min": 0.0,
+          "y_max": 16167.6,
+          "node_count": 438,
+          "x_min": 18.0,
+          "x_max": 13248.5,
+          "width": 13230.5,
+          "fraction_of_canvas": 0.9972488128438984
+        },
+        {
+          "band": 2,
+          "y_min": 16167.6,
+          "y_max": 32335.2,
+          "node_count": 167,
+          "x_min": 3071.62,
+          "x_max": 6170.25,
+          "width": 3098.63,
+          "fraction_of_canvas": 0.23355920705509914
+        },
+        {
+          "band": 3,
+          "y_min": 32335.2,
+          "y_max": 48502.8,
+          "node_count": 184,
+          "x_min": 2297.62,
+          "x_max": 5873.25,
+          "width": 3575.63,
+          "fraction_of_canvas": 0.2695130775608653
+        },
+        {
+          "band": 4,
+          "y_min": 48502.8,
+          "y_max": 64670.4,
+          "node_count": 165,
+          "x_min": 2078.62,
+          "x_max": 6236.75,
+          "width": 4158.13,
+          "fraction_of_canvas": 0.3134190095726238
+        },
+        {
+          "band": 5,
+          "y_min": 64670.4,
+          "y_max": 80838.0,
+          "node_count": 169,
+          "x_min": 1700.62,
+          "x_max": 5119.25,
+          "width": 3418.63,
+          "fraction_of_canvas": 0.25767920404009953
+        },
+        {
+          "band": 6,
+          "y_min": 80838.0,
+          "y_max": 97005.6,
+          "node_count": 168,
+          "x_min": 1563.62,
+          "x_max": 4747.88,
+          "width": 3184.26,
+          "fraction_of_canvas": 0.24001356749830408
+        },
+        {
+          "band": 7,
+          "y_min": 97005.6,
+          "y_max": 113173.20000000001,
+          "node_count": 181,
+          "x_min": 1406.62,
+          "x_max": 4435.25,
+          "width": 3028.63,
+          "fraction_of_canvas": 0.22828295771463028
+        },
+        {
+          "band": 8,
+          "y_min": 113173.2,
+          "y_max": 129340.8,
+          "node_count": 165,
+          "x_min": 1249.62,
+          "x_max": 3994.25,
+          "width": 2744.63,
+          "fraction_of_canvas": 0.20687646039044247
+        },
+        {
+          "band": 9,
+          "y_min": 129340.8,
+          "y_max": 145508.4,
+          "node_count": 167,
+          "x_min": 1019.62,
+          "x_max": 3748.25,
+          "width": 2728.63,
+          "fraction_of_canvas": 0.20567046054119245
+        },
+        {
+          "band": 10,
+          "y_min": 145508.4,
+          "y_max": 161676.0,
+          "node_count": 165,
+          "x_min": 483.38,
+          "x_max": 3400.25,
+          "width": 2916.87,
+          "fraction_of_canvas": 0.2198590487676189
+        }
+      ],
       "median_node_width_pt": 282.5,
       "max_node_width_pt": 488.0,
       "svg_bytes": 4218601,
       "sha256": "1bb7d751b093b854a907924f42f2c824511544d690a3608d03c11f28fa471f56"
     },
     {
-      "name": "compact_only",
+      "name": "compact_backbone",
       "layout": "fast",
       "compact": true,
-      "render_seconds": 19.670522900065407,
+      "render_seconds": 21.81312219996471,
       "reference_pass_seconds": 0,
       "all_original_connections_recovered": true,
       "graph_edges": 2477,
-      "output": "artifacts/readability/compact_only.svg",
+      "output": "artifacts/readability/compact_backbone.svg",
       "node_count": 1957,
       "drawn_edge_count": 2477,
       "reference_link_count": 0,
       "viewbox": [
         0.0,
         0.0,
-        9074.0,
-        130833.0
+        11415.0,
+        130855.0
       ],
-      "median_node_width_pt": 59.76000000000022,
-      "max_node_width_pt": 158.76000000000022,
-      "svg_bytes": 3777005,
-      "sha256": "a302afe14528474efe0bf14a64b53b36b130a171ecd80b955c19687f6770fd5d"
+      "horizontal_bands": [
+        {
+          "band": 1,
+          "y_min": 0.0,
+          "y_max": 13085.5,
+          "node_count": 438,
+          "x_min": 21.62,
+          "x_max": 11396.75,
+          "width": 11375.13,
+          "fraction_of_canvas": 0.9965072273324572
+        },
+        {
+          "band": 2,
+          "y_min": 13085.5,
+          "y_max": 26171.0,
+          "node_count": 167,
+          "x_min": 88.38,
+          "x_max": 10886.75,
+          "width": 10798.37,
+          "fraction_of_canvas": 0.9459807271134473
+        },
+        {
+          "band": 3,
+          "y_min": 26171.0,
+          "y_max": 39256.5,
+          "node_count": 183,
+          "x_min": 88.38,
+          "x_max": 9866.75,
+          "width": 9778.37,
+          "fraction_of_canvas": 0.8566246167323698
+        },
+        {
+          "band": 4,
+          "y_min": 39256.5,
+          "y_max": 52342.0,
+          "node_count": 166,
+          "x_min": 88.38,
+          "x_max": 8336.75,
+          "width": 8248.37,
+          "fraction_of_canvas": 0.7225904511607535
+        },
+        {
+          "band": 5,
+          "y_min": 52342.0,
+          "y_max": 65427.5,
+          "node_count": 168,
+          "x_min": 18.0,
+          "x_max": 6882.75,
+          "width": 6864.75,
+          "fraction_of_canvas": 0.6013797634691196
+        },
+        {
+          "band": 6,
+          "y_min": 65427.5,
+          "y_max": 78513.0,
+          "node_count": 168,
+          "x_min": 216.38,
+          "x_max": 6444.75,
+          "width": 6228.37,
+          "fraction_of_canvas": 0.5456303109943057
+        },
+        {
+          "band": 7,
+          "y_min": 78513.0,
+          "y_max": 91598.5,
+          "node_count": 180,
+          "x_min": 308.38,
+          "x_max": 5484.75,
+          "width": 5176.37,
+          "fraction_of_canvas": 0.45347087166009636
+        },
+        {
+          "band": 8,
+          "y_min": 91598.5,
+          "y_max": 104684.0,
+          "node_count": 165,
+          "x_min": 333.38,
+          "x_max": 3992.75,
+          "width": 3659.37,
+          "fraction_of_canvas": 0.32057555847568986
+        },
+        {
+          "band": 9,
+          "y_min": 104684.0,
+          "y_max": 117769.5,
+          "node_count": 167,
+          "x_min": 359.38,
+          "x_max": 2997.75,
+          "width": 2638.37,
+          "fraction_of_canvas": 0.23113184406482698
+        },
+        {
+          "band": 10,
+          "y_min": 117769.5,
+          "y_max": 130855.0,
+          "node_count": 165,
+          "x_min": 374.88,
+          "x_max": 2061.75,
+          "width": 1686.87,
+          "fraction_of_canvas": 0.1477766097240473
+        }
+      ],
+      "median_node_width_pt": 59.75,
+      "max_node_width_pt": 158.75,
+      "svg_bytes": 3768248,
+      "sha256": "b2001d355bb8094e3694e493e09c4e0c6b0bd9170a08fb701e666d03bc2a7558"
     },
     {
       "name": "compact_references",
       "layout": "default",
       "compact": true,
-      "render_seconds": 9.188008600031026,
-      "reference_pass_seconds": 0.05120400001760572,
+      "render_seconds": 3.005280099925585,
+      "reference_pass_seconds": 0.05165449995547533,
       "all_original_connections_recovered": true,
       "graph_edges": 2477,
       "output": "examples/svg/tinyllama_after.svg",
@@ -82,16 +286,118 @@
       "viewbox": [
         0.0,
         0.0,
-        13635.0,
-        142335.0
+        2190.0,
+        142346.0
+      ],
+      "horizontal_bands": [
+        {
+          "band": 1,
+          "y_min": 0.0,
+          "y_max": 14234.6,
+          "node_count": 271,
+          "x_min": 18.0,
+          "x_max": 2029.38,
+          "width": 2011.38,
+          "fraction_of_canvas": 0.9184383561643836
+        },
+        {
+          "band": 2,
+          "y_min": 14234.6,
+          "y_max": 28469.2,
+          "node_count": 200,
+          "x_min": 517.5,
+          "x_max": 1838.0,
+          "width": 1320.5,
+          "fraction_of_canvas": 0.6029680365296803
+        },
+        {
+          "band": 3,
+          "y_min": 28469.2,
+          "y_max": 42703.8,
+          "node_count": 185,
+          "x_min": 553.5,
+          "x_max": 1826.0,
+          "width": 1272.5,
+          "fraction_of_canvas": 0.5810502283105022
+        },
+        {
+          "band": 4,
+          "y_min": 42703.8,
+          "y_max": 56938.4,
+          "node_count": 187,
+          "x_min": 589.5,
+          "x_max": 1934.0,
+          "width": 1344.5,
+          "fraction_of_canvas": 0.6139269406392694
+        },
+        {
+          "band": 5,
+          "y_min": 56938.4,
+          "y_max": 71173.0,
+          "node_count": 185,
+          "x_min": 634.5,
+          "x_max": 1965.0,
+          "width": 1330.5,
+          "fraction_of_canvas": 0.6075342465753425
+        },
+        {
+          "band": 6,
+          "y_min": 71173.0,
+          "y_max": 85407.6,
+          "node_count": 203,
+          "x_min": 679.5,
+          "x_max": 1988.0,
+          "width": 1308.5,
+          "fraction_of_canvas": 0.5974885844748858
+        },
+        {
+          "band": 7,
+          "y_min": 85407.6,
+          "y_max": 99642.20000000001,
+          "node_count": 189,
+          "x_min": 715.5,
+          "x_max": 2060.0,
+          "width": 1344.5,
+          "fraction_of_canvas": 0.6139269406392694
+        },
+        {
+          "band": 8,
+          "y_min": 99642.2,
+          "y_max": 113876.8,
+          "node_count": 183,
+          "x_min": 751.5,
+          "x_max": 2078.0,
+          "width": 1326.5,
+          "fraction_of_canvas": 0.6057077625570776
+        },
+        {
+          "band": 9,
+          "y_min": 113876.8,
+          "y_max": 128111.40000000001,
+          "node_count": 186,
+          "x_min": 796.5,
+          "x_max": 2123.0,
+          "width": 1326.5,
+          "fraction_of_canvas": 0.6057077625570776
+        },
+        {
+          "band": 10,
+          "y_min": 128111.4,
+          "y_max": 142346.0,
+          "node_count": 183,
+          "x_min": 749.0,
+          "x_max": 2159.0,
+          "width": 1410.0,
+          "fraction_of_canvas": 0.6438356164383562
+        }
       ],
       "median_node_width_pt": 68.0,
       "max_node_width_pt": 158.76000000000022,
-      "svg_bytes": 3830802,
-      "sha256": "4d0a418d853603c2aee7f10a731d2ba72bb55fe39b94fd5e6371af9104fe6883"
+      "svg_bytes": 3797550,
+      "sha256": "39b48a79f64ae3aa918ea565815b259e07b1d895bee83e67635b6146375185b8"
     }
   ],
-  "load_seconds": 0.45556460006628186,
+  "load_seconds": 0.6809682999737561,
   "original_connections": 3789,
   "diagnosis": {
     "nodes": 1957,
@@ -153,6 +459,627 @@
         "outgoing_edges": 4
       }
     ]
+  },
+  "diagonal_drift": {
+    "method": "Same graph, labels and default dot layout for all trials; only weight/group hints differ. Ten equal-height canvas bands, top to bottom. Each width spans all node boxes intersecting the band (not edge routes or empty margins). Bands are intervals, not single-height slices. Coordinates in SVG points, with graph translation applied.",
+    "environment": {
+      "platform": "Windows-11-10.0.26200-SP0",
+      "python": "3.12.10",
+      "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+      "logical_cpus": 16,
+      "openvino": "2026.4.1",
+      "python_graphviz": "0.21",
+      "graphviz": "dot - graphviz version 16.1.0 (20260904.0139)",
+      "physical_memory_bytes": 8183242752
+    },
+    "within_layer_add_edges": 22,
+    "all_add_to_add_edges": 43,
+    "backbone_nodes": 44,
+    "trials": [
+      {
+        "variant": "baseline",
+        "seconds": 8.100462200003676,
+        "output": "artifacts/readability/drift/baseline.svg",
+        "node_count": 1957,
+        "drawn_edge_count": 2205,
+        "reference_link_count": 272,
+        "viewbox": [
+          0.0,
+          0.0,
+          13635.0,
+          142335.0
+        ],
+        "horizontal_bands": [
+          {
+            "band": 1,
+            "y_min": 0.0,
+            "y_max": 14233.5,
+            "node_count": 271,
+            "x_min": 11254.0,
+            "x_max": 13604.0,
+            "width": 2350.0,
+            "fraction_of_canvas": 0.17235056839017235
+          },
+          {
+            "band": 2,
+            "y_min": 14233.5,
+            "y_max": 28467.0,
+            "node_count": 200,
+            "x_min": 10671.0,
+            "x_max": 13041.0,
+            "width": 2370.0,
+            "fraction_of_canvas": 0.17381738173817382
+          },
+          {
+            "band": 3,
+            "y_min": 28467.0,
+            "y_max": 42700.5,
+            "node_count": 185,
+            "x_min": 9492.5,
+            "x_max": 11423.5,
+            "width": 1931.0,
+            "fraction_of_canvas": 0.14162082874954163
+          },
+          {
+            "band": 4,
+            "y_min": 42700.5,
+            "y_max": 56934.0,
+            "node_count": 187,
+            "x_min": 8180.0,
+            "x_max": 10116.0,
+            "width": 1936.0,
+            "fraction_of_canvas": 0.141987532086542
+          },
+          {
+            "band": 5,
+            "y_min": 56934.0,
+            "y_max": 71167.5,
+            "node_count": 185,
+            "x_min": 6971.0,
+            "x_max": 9058.0,
+            "width": 2087.0,
+            "fraction_of_canvas": 0.15306197286395307
+          },
+          {
+            "band": 6,
+            "y_min": 71167.5,
+            "y_max": 85401.0,
+            "node_count": 204,
+            "x_min": 5388.0,
+            "x_max": 7693.0,
+            "width": 2305.0,
+            "fraction_of_canvas": 0.16905023835716906
+          },
+          {
+            "band": 7,
+            "y_min": 85401.0,
+            "y_max": 99634.5,
+            "node_count": 188,
+            "x_min": 4030.0,
+            "x_max": 6423.88,
+            "width": 2393.88,
+            "fraction_of_canvas": 0.17556875687568757
+          },
+          {
+            "band": 8,
+            "y_min": 99634.5,
+            "y_max": 113868.0,
+            "node_count": 183,
+            "x_min": 2637.5,
+            "x_max": 4763.88,
+            "width": 2126.38,
+            "fraction_of_canvas": 0.15595012834616795
+          },
+          {
+            "band": 9,
+            "y_min": 113868.0,
+            "y_max": 128101.5,
+            "node_count": 187,
+            "x_min": 1247.5,
+            "x_max": 3290.0,
+            "width": 2042.5,
+            "fraction_of_canvas": 0.1497983131646498
+          },
+          {
+            "band": 10,
+            "y_min": 128101.5,
+            "y_max": 142335.0,
+            "node_count": 183,
+            "x_min": 18.0,
+            "x_max": 1969.0,
+            "width": 1951.0,
+            "fraction_of_canvas": 0.1430876420975431
+          }
+        ],
+        "median_node_width_pt": 68.0,
+        "max_node_width_pt": 158.76000000000022,
+        "svg_bytes": 3830802,
+        "sha256": "4d0a418d853603c2aee7f10a731d2ba72bb55fe39b94fd5e6371af9104fe6883"
+      },
+      {
+        "variant": "weight10_within_layer",
+        "seconds": 6.637470799963921,
+        "output": "artifacts/readability/drift/weight10_within_layer.svg",
+        "node_count": 1957,
+        "drawn_edge_count": 2205,
+        "reference_link_count": 272,
+        "viewbox": [
+          0.0,
+          0.0,
+          11442.0,
+          142335.0
+        ],
+        "horizontal_bands": [
+          {
+            "band": 1,
+            "y_min": 0.0,
+            "y_max": 14233.5,
+            "node_count": 271,
+            "x_min": 9018.0,
+            "x_max": 11411.0,
+            "width": 2393.0,
+            "fraction_of_canvas": 0.20914175843384022
+          },
+          {
+            "band": 2,
+            "y_min": 14233.5,
+            "y_max": 28467.0,
+            "node_count": 200,
+            "x_min": 8858.0,
+            "x_max": 10985.0,
+            "width": 2127.0,
+            "fraction_of_canvas": 0.18589407446250655
+          },
+          {
+            "band": 3,
+            "y_min": 28467.0,
+            "y_max": 42700.5,
+            "node_count": 185,
+            "x_min": 7913.5,
+            "x_max": 9610.5,
+            "width": 1697.0,
+            "fraction_of_canvas": 0.14831323195245585
+          },
+          {
+            "band": 4,
+            "y_min": 42700.5,
+            "y_max": 56934.0,
+            "node_count": 187,
+            "x_min": 6819.5,
+            "x_max": 8678.0,
+            "width": 1858.5,
+            "fraction_of_canvas": 0.1624278972207656
+          },
+          {
+            "band": 5,
+            "y_min": 56934.0,
+            "y_max": 71167.5,
+            "node_count": 185,
+            "x_min": 5925.0,
+            "x_max": 7823.0,
+            "width": 1898.0,
+            "fraction_of_canvas": 0.1658800908932005
+          },
+          {
+            "band": 6,
+            "y_min": 71167.5,
+            "y_max": 85401.0,
+            "node_count": 204,
+            "x_min": 4467.0,
+            "x_max": 6645.0,
+            "width": 2178.0,
+            "fraction_of_canvas": 0.1903513371788149
+          },
+          {
+            "band": 7,
+            "y_min": 85401.0,
+            "y_max": 99634.5,
+            "node_count": 188,
+            "x_min": 3325.0,
+            "x_max": 5564.88,
+            "width": 2239.88,
+            "fraction_of_canvas": 0.1957594826079357
+          },
+          {
+            "band": 8,
+            "y_min": 99634.5,
+            "y_max": 113868.0,
+            "node_count": 183,
+            "x_min": 2112.5,
+            "x_max": 4042.88,
+            "width": 1930.38,
+            "fraction_of_canvas": 0.16871001573151548
+          },
+          {
+            "band": 9,
+            "y_min": 113868.0,
+            "y_max": 128101.5,
+            "node_count": 187,
+            "x_min": 999.5,
+            "x_max": 2897.0,
+            "width": 1897.5,
+            "fraction_of_canvas": 0.16583639223911903
+          },
+          {
+            "band": 10,
+            "y_min": 128101.5,
+            "y_max": 142335.0,
+            "node_count": 183,
+            "x_min": 18.0,
+            "x_max": 1725.0,
+            "width": 1707.0,
+            "fraction_of_canvas": 0.14918720503408495
+          }
+        ],
+        "median_node_width_pt": 68.0,
+        "max_node_width_pt": 158.76000000000022,
+        "svg_bytes": 3821348,
+        "sha256": "1625e20a3d4fb0cbd719b624cda3a680fb6e4613027d28389f13dc2c890b69bc"
+      },
+      {
+        "variant": "weight10_backbone",
+        "seconds": 3.679210399976,
+        "output": "artifacts/readability/drift/weight10_backbone.svg",
+        "node_count": 1957,
+        "drawn_edge_count": 2205,
+        "reference_link_count": 272,
+        "viewbox": [
+          0.0,
+          0.0,
+          3389.0,
+          142335.0
+        ],
+        "horizontal_bands": [
+          {
+            "band": 1,
+            "y_min": 0.0,
+            "y_max": 14233.5,
+            "node_count": 271,
+            "x_min": 18.0,
+            "x_max": 2881.0,
+            "width": 2863.0,
+            "fraction_of_canvas": 0.8447919740336383
+          },
+          {
+            "band": 2,
+            "y_min": 14233.5,
+            "y_max": 28467.0,
+            "node_count": 200,
+            "x_min": 1687.5,
+            "x_max": 2958.0,
+            "width": 1270.5,
+            "fraction_of_canvas": 0.3748893478902331
+          },
+          {
+            "band": 3,
+            "y_min": 28467.0,
+            "y_max": 42700.5,
+            "node_count": 185,
+            "x_min": 1723.5,
+            "x_max": 2971.0,
+            "width": 1247.5,
+            "fraction_of_canvas": 0.36810268515786365
+          },
+          {
+            "band": 4,
+            "y_min": 42700.5,
+            "y_max": 56934.0,
+            "node_count": 187,
+            "x_min": 1759.5,
+            "x_max": 3031.0,
+            "width": 1271.5,
+            "fraction_of_canvas": 0.37518442018294484
+          },
+          {
+            "band": 5,
+            "y_min": 56934.0,
+            "y_max": 71167.5,
+            "node_count": 185,
+            "x_min": 1804.5,
+            "x_max": 3134.0,
+            "width": 1329.5,
+            "fraction_of_canvas": 0.39229861316022424
+          },
+          {
+            "band": 6,
+            "y_min": 71167.5,
+            "y_max": 85401.0,
+            "node_count": 204,
+            "x_min": 1849.5,
+            "x_max": 3094.0,
+            "width": 1244.5,
+            "fraction_of_canvas": 0.3672174682797285
+          },
+          {
+            "band": 7,
+            "y_min": 85401.0,
+            "y_max": 99634.5,
+            "node_count": 188,
+            "x_min": 1885.5,
+            "x_max": 3126.0,
+            "width": 1240.5,
+            "fraction_of_canvas": 0.36603717910888167
+          },
+          {
+            "band": 8,
+            "y_min": 99634.5,
+            "y_max": 113868.0,
+            "node_count": 183,
+            "x_min": 1921.5,
+            "x_max": 3166.0,
+            "width": 1244.5,
+            "fraction_of_canvas": 0.3672174682797285
+          },
+          {
+            "band": 9,
+            "y_min": 113868.0,
+            "y_max": 128101.5,
+            "node_count": 187,
+            "x_min": 1966.5,
+            "x_max": 3227.0,
+            "width": 1260.5,
+            "fraction_of_canvas": 0.37193862496311597
+          },
+          {
+            "band": 10,
+            "y_min": 128101.5,
+            "y_max": 142335.0,
+            "node_count": 183,
+            "x_min": 1919.0,
+            "x_max": 3358.0,
+            "width": 1439.0,
+            "fraction_of_canvas": 0.424609029212157
+          }
+        ],
+        "median_node_width_pt": 68.0,
+        "max_node_width_pt": 158.76000000000022,
+        "svg_bytes": 3817235,
+        "sha256": "cca1329c0e0ed74b5703793271a103aefea57700eeee087e2807f014c15b73ff"
+      },
+      {
+        "variant": "group_backbone",
+        "seconds": 3.1288142000557855,
+        "output": "artifacts/readability/drift/group_backbone.svg",
+        "node_count": 1957,
+        "drawn_edge_count": 2205,
+        "reference_link_count": 272,
+        "viewbox": [
+          0.0,
+          0.0,
+          2032.0,
+          142335.0
+        ],
+        "horizontal_bands": [
+          {
+            "band": 1,
+            "y_min": 0.0,
+            "y_max": 14233.5,
+            "node_count": 271,
+            "x_min": 18.0,
+            "x_max": 1938.38,
+            "width": 1920.38,
+            "fraction_of_canvas": 0.9450688976377953
+          },
+          {
+            "band": 2,
+            "y_min": 14233.5,
+            "y_max": 28467.0,
+            "node_count": 200,
+            "x_min": 433.5,
+            "x_max": 1740.0,
+            "width": 1306.5,
+            "fraction_of_canvas": 0.6429625984251969
+          },
+          {
+            "band": 3,
+            "y_min": 28467.0,
+            "y_max": 42700.5,
+            "node_count": 185,
+            "x_min": 469.5,
+            "x_max": 1717.0,
+            "width": 1247.5,
+            "fraction_of_canvas": 0.6139271653543307
+          },
+          {
+            "band": 4,
+            "y_min": 42700.5,
+            "y_max": 56934.0,
+            "node_count": 187,
+            "x_min": 505.5,
+            "x_max": 1803.0,
+            "width": 1297.5,
+            "fraction_of_canvas": 0.6385334645669292
+          },
+          {
+            "band": 5,
+            "y_min": 56934.0,
+            "y_max": 71167.5,
+            "node_count": 185,
+            "x_min": 550.5,
+            "x_max": 1827.0,
+            "width": 1276.5,
+            "fraction_of_canvas": 0.6281988188976378
+          },
+          {
+            "band": 6,
+            "y_min": 71167.5,
+            "y_max": 85401.0,
+            "node_count": 204,
+            "x_min": 595.5,
+            "x_max": 1841.0,
+            "width": 1245.5,
+            "fraction_of_canvas": 0.6129429133858267
+          },
+          {
+            "band": 7,
+            "y_min": 85401.0,
+            "y_max": 99634.5,
+            "node_count": 188,
+            "x_min": 631.5,
+            "x_max": 1869.0,
+            "width": 1237.5,
+            "fraction_of_canvas": 0.609005905511811
+          },
+          {
+            "band": 8,
+            "y_min": 99634.5,
+            "y_max": 113868.0,
+            "node_count": 183,
+            "x_min": 667.5,
+            "x_max": 1913.0,
+            "width": 1245.5,
+            "fraction_of_canvas": 0.6129429133858267
+          },
+          {
+            "band": 9,
+            "y_min": 113868.0,
+            "y_max": 128101.5,
+            "node_count": 187,
+            "x_min": 712.5,
+            "x_max": 1964.0,
+            "width": 1251.5,
+            "fraction_of_canvas": 0.6158956692913385
+          },
+          {
+            "band": 10,
+            "y_min": 128101.5,
+            "y_max": 142335.0,
+            "node_count": 183,
+            "x_min": 665.0,
+            "x_max": 2001.0,
+            "width": 1336.0,
+            "fraction_of_canvas": 0.65748031496063
+          }
+        ],
+        "median_node_width_pt": 68.0,
+        "max_node_width_pt": 158.76000000000022,
+        "svg_bytes": 3790956,
+        "sha256": "c16e7e05575d0e8d724ab38ed6e6cc3ef1ae2bfabc1ad4fac2e35117aaa9b45d"
+      },
+      {
+        "variant": "weight10_and_group",
+        "seconds": 3.0798401000211015,
+        "output": "artifacts/readability/drift/weight10_and_group.svg",
+        "node_count": 1957,
+        "drawn_edge_count": 2205,
+        "reference_link_count": 272,
+        "viewbox": [
+          0.0,
+          0.0,
+          2032.0,
+          142335.0
+        ],
+        "horizontal_bands": [
+          {
+            "band": 1,
+            "y_min": 0.0,
+            "y_max": 14233.5,
+            "node_count": 271,
+            "x_min": 18.0,
+            "x_max": 1938.38,
+            "width": 1920.38,
+            "fraction_of_canvas": 0.9450688976377953
+          },
+          {
+            "band": 2,
+            "y_min": 14233.5,
+            "y_max": 28467.0,
+            "node_count": 200,
+            "x_min": 433.5,
+            "x_max": 1740.0,
+            "width": 1306.5,
+            "fraction_of_canvas": 0.6429625984251969
+          },
+          {
+            "band": 3,
+            "y_min": 28467.0,
+            "y_max": 42700.5,
+            "node_count": 185,
+            "x_min": 469.5,
+            "x_max": 1717.0,
+            "width": 1247.5,
+            "fraction_of_canvas": 0.6139271653543307
+          },
+          {
+            "band": 4,
+            "y_min": 42700.5,
+            "y_max": 56934.0,
+            "node_count": 187,
+            "x_min": 505.5,
+            "x_max": 1803.0,
+            "width": 1297.5,
+            "fraction_of_canvas": 0.6385334645669292
+          },
+          {
+            "band": 5,
+            "y_min": 56934.0,
+            "y_max": 71167.5,
+            "node_count": 185,
+            "x_min": 550.5,
+            "x_max": 1827.0,
+            "width": 1276.5,
+            "fraction_of_canvas": 0.6281988188976378
+          },
+          {
+            "band": 6,
+            "y_min": 71167.5,
+            "y_max": 85401.0,
+            "node_count": 204,
+            "x_min": 595.5,
+            "x_max": 1841.0,
+            "width": 1245.5,
+            "fraction_of_canvas": 0.6129429133858267
+          },
+          {
+            "band": 7,
+            "y_min": 85401.0,
+            "y_max": 99634.5,
+            "node_count": 188,
+            "x_min": 631.5,
+            "x_max": 1869.0,
+            "width": 1237.5,
+            "fraction_of_canvas": 0.609005905511811
+          },
+          {
+            "band": 8,
+            "y_min": 99634.5,
+            "y_max": 113868.0,
+            "node_count": 183,
+            "x_min": 667.5,
+            "x_max": 1913.0,
+            "width": 1245.5,
+            "fraction_of_canvas": 0.6129429133858267
+          },
+          {
+            "band": 9,
+            "y_min": 113868.0,
+            "y_max": 128101.5,
+            "node_count": 187,
+            "x_min": 712.5,
+            "x_max": 1964.0,
+            "width": 1251.5,
+            "fraction_of_canvas": 0.6158956692913385
+          },
+          {
+            "band": 10,
+            "y_min": 128101.5,
+            "y_max": 142335.0,
+            "node_count": 183,
+            "x_min": 665.0,
+            "x_max": 2001.0,
+            "width": 1336.0,
+            "fraction_of_canvas": 0.65748031496063
+          }
+        ],
+        "median_node_width_pt": 68.0,
+        "max_node_width_pt": 158.76000000000022,
+        "svg_bytes": 3790956,
+        "sha256": "c16e7e05575d0e8d724ab38ed6e6cc3ef1ae2bfabc1ad4fac2e35117aaa9b45d"
+      }
+    ],
+    "labels": "First readability submission (04b4289): names omitted, source IDs without op types; identical labels in all five trials.",
+    "selected_variant": "group_backbone",
+    "selection_reason": "2032 pt width versus baseline 13635; adding weight gives identical geometry. Retain group alone."
   },
   "model_files_unchanged": true
 }
