@@ -5,9 +5,18 @@ import json
 from pathlib import Path
 
 from model_graph_viewer.errors import ConfigurationError
-from model_graph_viewer.passes import HideConstantsPass, HighlightPass, PassStep
+from model_graph_viewer.passes import (
+    FanoutReferencesPass,
+    HideConstantsPass,
+    HighlightPass,
+    PassStep,
+)
 
-_BUILTINS = {"highlight": HighlightPass, "hide-constants": HideConstantsPass}
+_BUILTINS = {
+    "highlight": HighlightPass,
+    "hide-constants": HideConstantsPass,
+    "fanout-references": FanoutReferencesPass,
+}
 
 
 def component(reference: str, options: dict | None = None) -> object:

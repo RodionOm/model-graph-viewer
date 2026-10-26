@@ -53,6 +53,8 @@ def render_graph(
     max_label_length: int = 120,
     timeout: float | None = None,
     layout: str = "default",
+    compact: bool = False,
+    metadata_path: str | Path | None = None,
 ) -> Path:
     """Write SVG atomically and return its path; do not change the graph."""
     try:
@@ -60,8 +62,8 @@ def render_graph(
     except (ImportError, OSError) as exc:
         raise EnvironmentCheckError(f"Cannot import the Graphviz backend: {exc}") from exc
     return GraphvizRenderer(
-        max_label_length=max_label_length, timeout=timeout, layout=layout
-    ).render(graph, output_path)
+        max_label_length=max_label_length, timeout=timeout, layout=layout, compact=compact
+    ).render(graph, output_path, metadata_path=metadata_path)
 
 
 def visualize(
@@ -74,6 +76,8 @@ def visualize(
     max_label_length: int = 120,
     timeout: float | None = None,
     layout: str = "default",
+    compact: bool = False,
+    metadata_path: str | Path | None = None,
 ) -> Path:
     """Load IR, run the supplied passes, write SVG, and return its path.
 
@@ -82,8 +86,28 @@ def visualize(
     Use the individual operations when the resulting Graph is also needed.
     """
     pipeline = Pipeline(passes)
+    # A user-selected metadata destination must never replace the input model.
+    candidate = (
+        Path(metadata_path) if metadata_path is not None else Path(output_path).with_suffix(".json")
+    )
+    inputs = [Path(model_path)] + ([Path(weights_path)] if weights_path is not None else [])
+    if metadata_path is not None and any(
+        candidate.resolve() == source.resolve() for source in inputs
+    ):
+        raise ConfigurationError("Metadata output must not overwrite an input model or weights.")
     graph = load_graph(model_path, weights_path=weights_path, loader=loader)
     pipeline.apply(graph)
+    needs_metadata = compact or any(
+        node.visualization.get("reference_fanout", False) for node in graph.nodes.values()
+    )
+    if needs_metadata and any(candidate.resolve() == source.resolve() for source in inputs):
+        raise ConfigurationError("Metadata output must not overwrite an input model or weights.")
     return render_graph(
-        graph, output_path, max_label_length=max_label_length, timeout=timeout, layout=layout
+        graph,
+        output_path,
+        max_label_length=max_label_length,
+        timeout=timeout,
+        layout=layout,
+        compact=compact,
+        metadata_path=metadata_path,
     )

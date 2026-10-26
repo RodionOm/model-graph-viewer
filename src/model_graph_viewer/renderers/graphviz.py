@@ -1,5 +1,7 @@
 """Hierarchical SVG rendering with explicit ports and atomic file output."""
 
+import hashlib
+import json
 import logging
 import math
 import os
@@ -14,7 +16,8 @@ from xml.etree import ElementTree
 import graphviz
 
 from model_graph_viewer.errors import RenderError
-from model_graph_viewer.graph import ConstantInput, Graph, Node
+from model_graph_viewer.graph import ConstantInput, Edge, Graph, Node
+from model_graph_viewer.renderers.metadata import graph_metadata
 
 _FILLCOLORS = {
     "Parameter": "#e2e8f0",
@@ -50,7 +53,12 @@ class GraphvizRenderer:
     """
 
     def __init__(
-        self, *, max_label_length: int = 120, timeout: float | None = None, layout: str = "default"
+        self,
+        *,
+        max_label_length: int = 120,
+        timeout: float | None = None,
+        layout: str = "default",
+        compact: bool = False,
     ) -> None:
         if type(max_label_length) is not int or max_label_length < 8:
             raise ValueError("max_label_length must be an integer of at least 8.")
@@ -66,6 +74,9 @@ class GraphvizRenderer:
         if layout not in {"default", "fast"}:
             raise ValueError("layout must be 'default' or 'fast'.")
         self.layout = layout
+        if type(compact) is not bool:
+            raise ValueError("compact must be a boolean.")
+        self.compact = compact
 
     def _short(self, text: str) -> str:
         limit = self.max_label_length
@@ -107,7 +118,15 @@ class GraphvizRenderer:
             f"<TR>{cells}</TR></TABLE></TD></TR>"
         )
 
-    def _label(self, node: Node, *, show_outputs: bool = True) -> str:
+    def _label(
+        self,
+        node: Node,
+        *,
+        show_outputs: bool = True,
+        references: tuple[Edge, ...] = (),
+        output_counts: dict[int, int] | None = None,
+        names: dict[str, str] | None = None,
+    ) -> str:
         fill = node.visualization.get("fillcolor", _FILLCOLORS.get(node.op_type, "#f8fafc"))
         border = node.visualization.get("border_color", "#64748b")
         if not isinstance(fill, str) or not isinstance(border, str):
@@ -116,10 +135,10 @@ class GraphvizRenderer:
         rows = [self._ports(node.input_ports, "in")]
         rows.append(
             f"<TR><TD><B>{_html(self._short(node.op_type))}</B><BR/>"
-            f"{_html(self._short(node.name))}<BR/>"
-            f'<FONT POINT-SIZE="9">ID: {_html(self._short(node.node_id))}</FONT></TD></TR>'
+            + ("" if self.compact else f"{_html(self._short(node.name))}<BR/>")
+            + f'<FONT POINT-SIZE="9">ID: {_html(node.node_id)}</FONT></TD></TR>'
         )
-        for key, value in node.attributes.items():
+        for key, value in () if self.compact else node.attributes.items():
             # Synthetic graphs may contain tensor values even though our loader
             # excludes them. Constant rendering only allows descriptive metadata.
             if node.op_type == "Constant" and key not in {"dtype", "shape", "element_type"}:
@@ -140,6 +159,18 @@ class GraphvizRenderer:
                 raise RenderError(f"Node {node.node_id!r} has an invalid hidden constant port.")
         for port in sorted(hidden):
             rows.append(f'<TR><TD ALIGN="LEFT">{_html(str(hidden[port]))}</TD></TR>')
+        for edge in sorted(references, key=lambda edge: edge.to_port):
+            source = f"in {edge.to_port} &#8592; ID: {_html(edge.from_node)} / out {edge.from_port}"
+            rows.append(
+                f'<TR><TD ALIGN="LEFT" BGCOLOR="#eff6ff" HREF="#node_{names[edge.from_node]}" '
+                f'TOOLTIP="{escape("Jump to source node " + edge.from_node)}">'
+                f'<FONT COLOR="#1d4ed8">{source}</FONT><BR ALIGN="LEFT"/>'
+                f"{_html(str(edge.tensor))}</TD></TR>"
+            )
+        for port, count in sorted((output_counts or {}).items()):
+            rows.append(
+                f'<TR><TD ALIGN="LEFT" BGCOLOR="#eff6ff">out {port}: {count} reference(s)</TD></TR>'
+            )
         if "note" in node.visualization:
             rows.append(
                 '<TR><TD ALIGN="LEFT"><I>'
@@ -182,13 +213,45 @@ class GraphvizRenderer:
             # ports are retained; only position optimization and edge routes change.
             dot.graph_attr.update(nslimit="0.5", nslimit1="0.5", mclimit="0.25", splines="line")
         names = {node_id: f"n{index}" for index, node_id in enumerate(graph.nodes)}
+        references: dict[str, list[Edge]] = {}
+        output_counts: dict[str, dict[int, int]] = {}
+        for node in graph.nodes.values():
+            if type(node.visualization.get("reference_fanout", False)) is not bool:
+                raise RenderError(f"Node {node.node_id!r} has invalid reference_fanout metadata.")
+        for edge in graph.edges.values():
+            if graph.nodes[edge.from_node].visualization.get("reference_fanout", False):
+                references.setdefault(edge.to_node, []).append(edge)
+                counts = output_counts.setdefault(edge.from_node, {})
+                counts[edge.from_port] = counts.get(edge.from_port, 0) + 1
+        if references:
+            dot.graph_attr.update(
+                labelloc="t",
+                fontsize="12",
+                fontname="Arial",
+                label="Blue input references replace fan-out arrows.\n"
+                "Click a reference to jump to its source ID and output port.\n"
+                "All connections and node details are in the companion JSON.",
+            )
         for node in graph.nodes.values():
             name = names[node.node_id]
             # Result's unused backend output is not another computation step.
             # Retain the actual port in Graph, and show it if it has connections.
             show_outputs = node.op_type != "Result" or bool(graph.outgoing(node.node_id))
-            dot.node(name, label=self._label(node, show_outputs=show_outputs), id=f"node_{name}")
+            dot.node(
+                name,
+                label=self._label(
+                    node,
+                    show_outputs=show_outputs,
+                    references=tuple(references.get(node.node_id, ())),
+                    output_counts=output_counts.get(node.node_id),
+                    names=names,
+                ),
+                id=f"node_{name}",
+                **({"tooltip": node.name} if self.compact else {}),
+            )
         for index, edge in enumerate(graph.edges.values()):
+            if graph.nodes[edge.from_node].visualization.get("reference_fanout", False):
+                continue
             label = f"out {edge.from_port} → in {edge.to_port}\n{edge.tensor}"
             dot.edge(
                 f"{names[edge.from_node]}:out{edge.from_port}:s",
@@ -234,25 +297,69 @@ class GraphvizRenderer:
             raise RenderError("Graphviz returned invalid XML instead of SVG.") from exc
         return result.stdout
 
-    def render(self, graph: Graph, output_path: str | Path) -> Path:
-        """Write SVG atomically, preserving an existing output on failure."""
+    def metadata(self, graph: Graph) -> dict:
+        """Return untruncated JSON-compatible details without writing files."""
+        return graph_metadata(graph, compact=self.compact)
+
+    def render(
+        self,
+        graph: Graph,
+        output_path: str | Path,
+        *,
+        metadata_path: str | Path | None = None,
+    ) -> Path:
+        """Write SVG and optional JSON with atomic replacement of each file.
+
+        Compact labels or reference annotations automatically request a sibling
+        .json file. Both files are staged before replacement. Their SHA256 pairing
+        detects interruption between replacements; the pair is not a transaction.
+        """
         path = Path(output_path)
         if path.suffix.lower() != ".svg":
             raise RenderError(f"Output path must end with .svg: {path}")
+        needs_metadata = self.compact or any(
+            node.visualization.get("reference_fanout", False) for node in graph.nodes.values()
+        )
+        metadata_path = (
+            Path(metadata_path)
+            if metadata_path is not None
+            else (path.with_suffix(".json") if needs_metadata else None)
+        )
+        if metadata_path is not None and metadata_path.suffix.lower() != ".json":
+            raise RenderError("Metadata output path must end with .json.")
         svg = self.render_svg(graph)
-        temporary: Path | None = None
+        outputs = []
+        if metadata_path is not None:
+            details = self.metadata(graph)
+            details["svg_sha256"] = hashlib.sha256(svg).hexdigest()
+            outputs.append(
+                (
+                    metadata_path,
+                    (
+                        json.dumps(details, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
+                    ).encode("utf-8"),
+                )
+            )
+        outputs.append((path, svg))
+        staged: list[tuple[Path, Path]] = []
         try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with tempfile.NamedTemporaryFile(
-                mode="wb", dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", delete=False
-            ) as handle:
-                temporary = Path(handle.name)
-                handle.write(svg)
-            os.replace(temporary, path)
+            for destination, content in outputs:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                with tempfile.NamedTemporaryFile(
+                    mode="wb",
+                    dir=destination.parent,
+                    prefix=f".{destination.name}.",
+                    suffix=".tmp",
+                    delete=False,
+                ) as handle:
+                    staged.append((Path(handle.name), destination))
+                    handle.write(content)
+            for temporary, destination in staged:
+                os.replace(temporary, destination)
         except OSError as exc:
             raise RenderError(f"Cannot write SVG to {path}: {exc}") from exc
         finally:
-            if temporary is not None:
+            for temporary, _ in staged:
                 try:
                     temporary.unlink(missing_ok=True)
                 except OSError:

@@ -11,7 +11,12 @@ from model_graph_viewer.api import visualize
 from model_graph_viewer.configuration import component, configured_passes
 from model_graph_viewer.environment import check_environment
 from model_graph_viewer.errors import ViewerError
-from model_graph_viewer.passes import HideConstantsPass, HighlightPass, TransformationPass
+from model_graph_viewer.passes import (
+    FanoutReferencesPass,
+    HideConstantsPass,
+    HighlightPass,
+    TransformationPass,
+)
 
 
 def _timeout(value: str) -> float:
@@ -39,14 +44,22 @@ def _label_length(value: str) -> int:
 def _passes(parser: argparse.ArgumentParser, args: argparse.Namespace) -> list[TransformationPass]:
     names = [name.strip() for group in (args.passes or []) for name in group.split(",")]
     for name in names:
-        if name not in {"highlight", "hide-constants"}:
-            parser.error(f"unknown pass {name!r}; choose highlight or hide-constants")
+        if name not in {"highlight", "hide-constants", "fanout-references"}:
+            parser.error(
+                f"unknown pass {name!r}; choose highlight, hide-constants or fanout-references"
+            )
     if args.highlight_node is not None and "highlight" not in names:
         parser.error("--highlight-node requires highlight in --passes")
     if "highlight" in names and args.highlight_node is None:
         parser.error("the highlight pass requires at least one --highlight-node")
+    if args.fanout_threshold is not None and "fanout-references" not in names:
+        parser.error("--fanout-threshold requires fanout-references in --passes")
     return [
-        HighlightPass(args.highlight_node) if name == "highlight" else HideConstantsPass()
+        HighlightPass(args.highlight_node)
+        if name == "highlight"
+        else FanoutReferencesPass(args.fanout_threshold or 3)
+        if name == "fanout-references"
+        else HideConstantsPass()
         for name in names
     ]
 
@@ -65,6 +78,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--model", type=Path, help="input model path (default: OpenVINO IR .xml)")
     parser.add_argument("--loader", metavar="MODULE:FACTORY", help="custom model loader factory")
+    parser.add_argument(
+        "--compact",
+        action="store_true",
+        default=None,
+        help="omit names/ordinary attributes from labels; write them to JSON",
+    )
+    parser.add_argument(
+        "--metadata-output",
+        type=Path,
+        metavar="JSON",
+        help="node details and connections (automatic beside SVG in compact/reference mode)",
+    )
+    parser.add_argument(
+        "--fanout-threshold",
+        type=int,
+        metavar="N",
+        help="reference sources with more than N outgoing edges (default: 3)",
+    )
     parser.add_argument(
         "--layout",
         choices=("default", "fast"),
@@ -86,7 +117,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--passes",
         action="append",
         metavar="PASS[,PASS...]",
-        help="ordered highlight,hide-constants passes; repeatable; default: no passes",
+        help="ordered highlight,hide-constants,fanout-references; repeatable; default: no passes",
     )
     parser.add_argument(
         "--highlight-node",
@@ -118,6 +149,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.loader,
         args.pass_config,
         args.layout,
+        args.compact,
+        args.metadata_output,
+        args.fanout_threshold,
     )
     has_render_options = any(value is not None for value in render_options)
     if args.check_environment and has_render_options:
@@ -131,13 +165,24 @@ def main(argv: Sequence[str] | None = None) -> int:
             parser.error("rendering requires both --model and --output")
         if args.output.suffix.lower() != ".svg":
             parser.error("--output must end with .svg")
+        if args.metadata_output is not None and args.metadata_output.suffix.lower() != ".json":
+            parser.error("--metadata-output must end with .json")
+        if args.fanout_threshold is not None and args.fanout_threshold < 1:
+            parser.error("--fanout-threshold must be a positive integer")
         if args.loader is not None and args.weights is not None:
             parser.error(
                 "--weights belongs to the default loader; configure custom weights in its factory"
             )
         if args.pass_config is not None:
-            if args.passes is not None or args.highlight_node is not None:
-                parser.error("--pass-config cannot be combined with --passes or --highlight-node")
+            if (
+                args.passes is not None
+                or args.highlight_node is not None
+                or args.fanout_threshold is not None
+            ):
+                parser.error(
+                    "--pass-config cannot be combined with --passes or --highlight-node "
+                    "or --fanout-threshold"
+                )
         else:
             transformations = _passes(parser, args)
     try:
@@ -157,6 +202,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 max_label_length=args.max_label_length or 120,
                 timeout=args.timeout,
                 layout=args.layout or "default",
+                compact=bool(args.compact),
+                metadata_path=args.metadata_output,
             )
             print(f"Created SVG: {output}")
     except ViewerError as exc:

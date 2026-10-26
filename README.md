@@ -16,7 +16,7 @@ implemented and tested, together with port-aware SVG rendering, a public Python
 API, and the model-to-SVG CLI.
 All ten implementation stages are complete, with the limitations documented below.
 The current suite passes
-254 tests, including real OpenVINO-to-SVG and API/CLI integration cases. Lint and formatting checks
+280 tests, including real OpenVINO-to-SVG and API/CLI integration cases. Lint and formatting checks
 also pass. Earlier setup checks verified the Graphviz SVG backend and installation
 of a built wheel independently of the editable source checkout.
 The original [starter_code.py](starter_code.py) is preserved as a standalone
@@ -133,6 +133,57 @@ regenerate the example; these generated files are ignored by Git. Its weights ar
 which has also been checked with OpenVINO CPU inference.
 
 ## Command-line usage
+
+### Compact labels and fan-out references
+
+For large models, use `--compact --passes hide-constants,fanout-references`.
+Compact labels show the operation type, full node ID, ports, tensor records and
+notes; names and ordinary operation attributes move to a companion JSON file.
+Names remain available as hover tooltips. The default detailed labels are unchanged.
+
+The `fanout-references` pass selects nodes with **more than three outgoing edges**
+across their output ports. Use `--fanout-threshold N` to change this strict threshold.
+Each selected source shows per-output reference counts. Every consumer shows a blue
+`in P <- ID: S / out Q` record with the tensor type/shape. Click that record in a
+standalone SVG opened in a browser to jump to the source. An embedded image or GitHub
+preview may disable links; download/open the SVG directly to navigate it.
+
+This pass marks visualization metadata; **every edge remains in `Graph.edges`**.
+Only its drawn arrow is suppressed. Multiple outputs, parallel connections and
+duplicate node names remain distinct because references use IDs and both ports.
+Use it after `hide-constants` so fan-out is measured on the graph being drawn.
+Reapplying the pass recomputes the selection without duplicating records.
+
+```sh
+python -m model_graph_viewer --model models/tinyllama/openvino_model.xml --output artifacts/readable.svg --compact --passes hide-constants,fanout-references --timeout 120
+```
+
+The result includes `artifacts/readable.json`. `--metadata-output path.json` selects
+a different destination or requests JSON with detailed rendering. JSON includes:
+
+- `nodes`: mapping from full node ID to name, type, ports, untruncated ordinary
+  attributes, SVG element ID, visualization metadata and hidden-constant records.
+- `edges`: every connection after structural passes, with source/destination IDs,
+  both ports, structured tensor metadata and a `rendered` flag. Follow these records
+  to enumerate all consumers of a source, including suppressed arrows.
+- `svg_sha256`: identifies the exact SVG paired with this metadata.
+
+Hidden Constant connections can be recovered from their consumer records; removed
+Constant names/attributes are not retained by `HideConstantsPass`. Weight values are
+never exported. Opaque attributes receive a type placeholder, cyclic values a marker;
+ordinary JSON-compatible attributes are not truncated. Shape records distinguish
+missing shape, dynamic rank, scalar, dimensions and bounds.
+
+Both outputs are staged before replacement and each file is replaced atomically.
+A process interruption between replacements can leave a mismatched pair: compare
+the SVG SHA256 with the JSON field. A layout failure leaves existing outputs intact.
+
+Python equivalents are `FanoutReferencesPass(threshold=3)` from
+`model_graph_viewer.passes`, `compact=True` on `GraphvizRenderer`, `render_graph` or
+`visualize`, and `metadata_path=...` on `render`/`render_graph`/`visualize`.
+For in-memory exports, use `renderer.render_svg(graph)` together with
+`renderer.metadata(graph)`; neither writes files. Pass configuration JSON supports
+`{"name": "fanout-references", "options": {"threshold": 3}}`.
 
 After generating the models above, render the original or transformed graph.
 Native Graphviz must be on `PATH`, as described in Setup.
