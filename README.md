@@ -22,6 +22,11 @@ of a built wheel independently of the editable source checkout.
 The original [starter_code.py](starter_code.py) is preserved as a standalone
 Graphviz example.
 
+The readability follow-up adds compact labels with a JSON sidecar and a configurable
+fan-out reference pass. See the [investigation and comparison](#readability-follow-up)
+and the updated [TinyLlama SVG](examples/svg/tinyllama_after.svg) /
+[node details and connectivity JSON](examples/svg/tinyllama_after.json).
+
 ## Setup
 
 Use Python 3.11 or newer. Development is being checked on Windows with Python 3.12.
@@ -134,57 +139,6 @@ which has also been checked with OpenVINO CPU inference.
 
 ## Command-line usage
 
-### Compact labels and fan-out references
-
-For large models, use `--compact --passes hide-constants,fanout-references`.
-Compact labels show the operation type, full node ID, ports, tensor records and
-notes; names and ordinary operation attributes move to a companion JSON file.
-Names remain available as hover tooltips. The default detailed labels are unchanged.
-
-The `fanout-references` pass selects nodes with **more than three outgoing edges**
-across their output ports. Use `--fanout-threshold N` to change this strict threshold.
-Each selected source shows per-output reference counts. Every consumer shows a blue
-`in P <- ID: S / out Q` record with the tensor type/shape. Click that record in a
-standalone SVG opened in a browser to jump to the source. An embedded image or GitHub
-preview may disable links; download/open the SVG directly to navigate it.
-
-This pass marks visualization metadata; **every edge remains in `Graph.edges`**.
-Only its drawn arrow is suppressed. Multiple outputs, parallel connections and
-duplicate node names remain distinct because references use IDs and both ports.
-Use it after `hide-constants` so fan-out is measured on the graph being drawn.
-Reapplying the pass recomputes the selection without duplicating records.
-
-```sh
-python -m model_graph_viewer --model models/tinyllama/openvino_model.xml --output artifacts/readable.svg --compact --passes hide-constants,fanout-references --timeout 120
-```
-
-The result includes `artifacts/readable.json`. `--metadata-output path.json` selects
-a different destination or requests JSON with detailed rendering. JSON includes:
-
-- `nodes`: mapping from full node ID to name, type, ports, untruncated ordinary
-  attributes, SVG element ID, visualization metadata and hidden-constant records.
-- `edges`: every connection after structural passes, with source/destination IDs,
-  both ports, structured tensor metadata and a `rendered` flag. Follow these records
-  to enumerate all consumers of a source, including suppressed arrows.
-- `svg_sha256`: identifies the exact SVG paired with this metadata.
-
-Hidden Constant connections can be recovered from their consumer records; removed
-Constant names/attributes are not retained by `HideConstantsPass`. Weight values are
-never exported. Opaque attributes receive a type placeholder, cyclic values a marker;
-ordinary JSON-compatible attributes are not truncated. Shape records distinguish
-missing shape, dynamic rank, scalar, dimensions and bounds.
-
-Both outputs are staged before replacement and each file is replaced atomically.
-A process interruption between replacements can leave a mismatched pair: compare
-the SVG SHA256 with the JSON field. A layout failure leaves existing outputs intact.
-
-Python equivalents are `FanoutReferencesPass(threshold=3)` from
-`model_graph_viewer.passes`, `compact=True` on `GraphvizRenderer`, `render_graph` or
-`visualize`, and `metadata_path=...` on `render`/`render_graph`/`visualize`.
-For in-memory exports, use `renderer.render_svg(graph)` together with
-`renderer.metadata(graph)`; neither writes files. Pass configuration JSON supports
-`{"name": "fanout-references", "options": {"threshold": 3}}`.
-
 After generating the models above, render the original or transformed graph.
 Native Graphviz must be on `PATH`, as described in Setup.
 
@@ -236,6 +190,69 @@ arguments exit with code 2. Expected loading, transformation, dependency, and
 rendering failures print a short message to stderr and exit with code 1.
 Unexpected programming errors retain their traceback. A failed render preserves
 an existing SVG, and no model or weight file is modified.
+
+### Compact labels and fan-out references
+
+For large models, use `--compact --passes hide-constants,fanout-references`.
+Compact labels show the operation type, full node ID, ports, tensor records and
+notes; names and ordinary operation attributes move to a companion JSON file.
+Names remain available as hover tooltips. The default detailed labels are unchanged.
+
+The `fanout-references` pass selects nodes with **more than three outgoing edges**
+across their output ports. Use `--fanout-threshold N` to change this strict threshold.
+Each selected source shows per-output reference counts. Every consumer shows a blue
+`in P <- ID: S / out Q` record with the tensor type/shape. Click that record in a
+standalone SVG opened in a browser to jump to the source. An embedded image or GitHub
+preview may disable links; download/open the SVG directly to navigate it.
+
+This pass marks visualization metadata; **every edge remains in `Graph.edges`**.
+Only its drawn arrow is suppressed. Multiple outputs, parallel connections and
+duplicate node names remain distinct because references use IDs and both ports.
+Use it after `hide-constants` so fan-out is measured on the graph being drawn.
+Reapplying the pass recomputes the selection without duplicating records.
+
+```sh
+python -m model_graph_viewer --model models/tinyllama/openvino_model.xml --output artifacts/readable.svg --compact --passes hide-constants,fanout-references --timeout 120
+```
+
+The result includes `artifacts/readable.json`. `--metadata-output path.json` selects
+a different destination or requests JSON with detailed rendering. JSON includes:
+
+- `nodes`: mapping from full node ID to name, type, ports, untruncated ordinary
+  attributes, SVG element ID, visualization metadata and hidden-constant records.
+- `edges`: every connection after structural passes, with source/destination IDs,
+  both ports, structured tensor metadata and a `rendered` flag. Follow these records
+  to enumerate all consumers of a source, including suppressed arrows.
+- `svg_sha256`: identifies the exact SVG paired with this metadata.
+
+For example, inspect a source and all its consumers without following arrows:
+
+```python
+import json
+from pathlib import Path
+
+details = json.loads(Path("examples/svg/tinyllama_after.json").read_text(encoding="utf-8"))
+print(details["nodes"]["83"])  # Full name, operation attributes, ports and SVG ID.
+consumers = [edge for edge in details["edges"] if edge["from_node"] == "83"]
+print([(edge["to_node"], edge["to_port"]) for edge in consumers])
+```
+
+Hidden Constant connections can be recovered from their consumer records; removed
+Constant names/attributes are not retained by `HideConstantsPass`. Weight values are
+never exported. Opaque attributes receive a type placeholder, cyclic values a marker;
+ordinary JSON-compatible attributes are not truncated. Shape records distinguish
+missing shape, dynamic rank, scalar, dimensions and bounds.
+
+Both outputs are staged before replacement and each file is replaced atomically.
+A process interruption between replacements can leave a mismatched pair: compare
+the SVG SHA256 with the JSON field. A layout failure leaves existing outputs intact.
+
+Python equivalents are `FanoutReferencesPass(threshold=3)` from
+`model_graph_viewer.passes`, `compact=True` on `GraphvizRenderer`, `render_graph` or
+`visualize`, and `metadata_path=...` on `render`/`render_graph`/`visualize`.
+For in-memory exports, use `renderer.render_svg(graph)` together with
+`renderer.metadata(graph)`; neither writes files. Pass configuration JSON supports
+`{"name": "fanout-references", "options": {"threshold": 3}}`.
 
 ## Python API
 
@@ -563,8 +580,9 @@ replaced atomically only after valid SVG has been produced, so a failed render
 preserves the existing output. Graphviz warnings are sent to Python logging.
 Exact coordinates and font metrics can vary by Graphviz version and system fonts.
 
-`GraphvizRenderer(layout="fast")` retains every node, port, connection and label,
-while setting `nslimit=0.5`, `nslimit1=0.5`, `mclimit=0.25`, and `splines=line`.
+`GraphvizRenderer(layout="fast")` changes routing/optimization only, setting
+`nslimit=0.5`, `nslimit1=0.5`, `mclimit=0.25`, and `splines=line`.
+Compact labels and fan-out reference annotations are independent of that profile.
 These limit optimization effort and avoid costly spline routing; they are not a
 wall-clock guarantee. Straight edges can cross nodes and labels. Use normal
 layout for small graphs and the fast mode when a full large graph is needed.
@@ -575,9 +593,11 @@ See Graphviz's [iteration limits](https://graphviz.org/docs/attrs/nslimit/),
 
 ### View and reproduce examples
 
-Eight checked SVGs are committed in [examples/svg](examples/svg):
+Eight primary model SVGs are committed in [examples/svg](examples/svg), plus a small
+fan-out demonstration pair described below. Edge counts in the table describe the
+graph; the updated TinyLlama drawing replaces 272 of its edges with references.
 
-| Model | Before | After highlighting and constant hiding |
+| Model | Before | After transformations |
 | --- | --- | --- |
 | Linear: 6 → 4 nodes, 5 → 3 edges | [Before](examples/svg/linear_before.svg) | [After](examples/svg/linear_after.svg) |
 | Branching: 9 → 7 nodes, 10 → 7 edges | [Before](examples/svg/branching_before.svg) | [After](examples/svg/branching_after.svg) |
@@ -620,7 +640,7 @@ commands work in PowerShell and POSIX shells:
 ```sh
 python scripts/download_tinyllama.py
 python -m model_graph_viewer --model models/tinyllama/openvino_model.xml --output examples/svg/tinyllama_before.svg --layout fast --timeout 180
-python -m model_graph_viewer --model models/tinyllama/openvino_model.xml --output examples/svg/tinyllama_after.svg --layout fast --timeout 180 --passes highlight,hide-constants --highlight-node "__module.model.layers.0.self_attn.q_proj/ov_ext::linear/MatMul"
+python -m model_graph_viewer --model models/tinyllama/openvino_model.xml --output examples/svg/tinyllama_after.svg --compact --timeout 120 --passes highlight,hide-constants,fanout-references --highlight-node "__module.model.layers.0.self_attn.q_proj/ov_ext::linear/MatMul"
 ```
 
 The model's IR metadata records OpenVINO `2026.0.0-20961-f08e8b36350`,
@@ -633,7 +653,9 @@ The graph contains 1259 Constants, 433 Converts, 44 ReadValues, 44 Assigns and
 22 ScaledDotProductAttention nodes, among other operations. After hiding
 Constants, Convert nodes remain. Both SVGs have been parsed to verify every
 expected node/edge and reviewed in Edge at a selected projection. The complete
-SVGs are very tall; zoom is essential and the fast layout has visible crossings.
+SVGs are very tall; zoom is essential. The original uses fast layout; the updated
+after view uses ordinary spline routing, compact labels and fan-out references,
+with the omitted names/attributes and all connections in `tinyllama_after.json`.
 
 ## Graph API
 
@@ -721,6 +743,19 @@ same API available to Python users.
 
 ## Verification
 
+The 2026-10-26 readability update passes **280 tests with no skips** both from the
+source environment and from an installed wheel in the separate verification venv.
+The wheel's 20 Python source files match the checkout. The installed CLI reproduced
+the updated TinyLlama SVG/JSON and the small fan-out SVG pair/JSON byte for byte.
+Ruff checks pass; all 3789 original TinyLlama port connections are recovered from
+the exported data, and XML/BIN hashes are unchanged. The SVGs were reviewed in Edge.
+See [readability-verification.json](benchmarks/readability-verification.json).
+Git preserves the exact generated SVG/JSON bytes so checkout newline conversion
+cannot invalidate the paired SVG hash.
+
+The following is the historical verification of the first submission at
+`028ef46`; its TinyLlama-after SVG has since been replaced by the readable version.
+
 On 2026-10-24 the final code was built as a wheel and installed with the pinned
 dependencies in a separate virtual environment, without an editable installation.
 Imports were verified to come from `site-packages`. All 254 tests passed with no
@@ -739,6 +774,75 @@ or Graphviz versions.
 
 ## Performance
 
+### Readability follow-up
+
+The initial constant-hiding pass left 1957 nodes and 2477 arrows. Inspection found
+522 node names longer than 60 characters and **9 nodes with fan-out greater than 3**,
+responsible for **272 arrows**. Five sources have 44 consumers each; two have 22.
+These include shared beam indices, shape/position data and attention-mask inputs,
+which span distant parts of the model. Removing Constant boxes alone did not remove
+these connections. The previous fast layout drew straight lines across blocks and
+labels, while long operation names made the blocks wide.
+
+The new pass replaces those arrows with clickable source-ID/output-port references
+on each consumer input. Source nodes remain visible and display counts per output.
+All 2477 graph edges remain intact; 2205 arrows and 272 reference records represent
+them in the SVG. JSON also stores every connection and the full omitted attributes.
+The benchmark reconstructs **all 3789 original port connections**, combining the
+edge list with hidden-constant records, and checks that XML/BIN hashes are unchanged.
+
+![The same TinyLlama projection at the same scale, before and after the readability changes](examples/readability-comparison.png)
+
+This crop is a browser capture of the actual full SVGs, centered on node 43, the
+first query projection. It illustrates local readability, not a smaller model.
+
+Measurements on 2026-10-26, same Windows machine and dependency versions as below:
+
+| Variant | Layout | Drawn arrows | References | Median node width (pt) | Render/export (s) |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Previous labels and constant hiding | fast | 2477 | 0 | 282.50 | 17.164 |
+| Compact labels only | fast | 2477 | 0 | 59.76 | 19.671 |
+| Compact labels + fan-out references | default | 2205 | 272 | 68.00 | 9.188 |
+
+All variants contain the same 1957 operations. The final median block width is about
+76% smaller. Compact labels alone leave the crossing arrows in place; removing the
+high-fan-out arrows enables ordinary spline routing to finish in this measured run.
+The reference pass, including validation, took 0.051 seconds. These are individual
+sequential measurements, not averages or a guaranteed speedup; compact export includes
+JSON writing. The overall canvas is still large and becomes slightly wider with
+the final routing (13635 pt versus 13267 pt), despite narrower individual blocks.
+The full metrics and method are in [readability.json](benchmarks/readability.json).
+
+Reproduce the three variants and updated TinyLlama SVG/JSON:
+
+```sh
+python scripts/benchmark_readability.py
+```
+
+The two intermediate SVGs go to ignored `artifacts/readability/`. The previous
+variant reproduces the [first submission's transformed SVG](https://github.com/RodionOm/model-graph-viewer/blob/028ef46383051a86a3e84a97ce321f3a5ccbd1e0/examples/svg/tinyllama_after.svg).
+Failures stop the script with a nonzero exit code; completed variants remain in its
+report. Large benchmarks are explicit commands, never part of the normal test suite.
+
+For an easy-to-read demonstration with four consumers of one source, compare
+[fanout_before.svg](examples/svg/fanout_before.svg) and
+[fanout_after.svg](examples/svg/fanout_after.svg), with its
+[JSON](examples/svg/fanout_after.json). This is generated from a small real OpenVINO
+model in memory:
+
+```sh
+python scripts/render_fanout_example.py
+```
+
+References trade immediate visual tracing for a lookup/click. Suppressed edges do
+not constrain layout ranks, so their sources can appear in separate visual regions.
+The graph remains fully represented but is not a complete arrow-only drawing.
+An adjustable threshold lets users choose that tradeoff. Future extensions could
+add a searchable viewer or focused subgraphs, or collapse well-defined repeated
+blocks while exposing their boundary ports. Those are not implemented here.
+
+### Initial submission measurements
+
 Measured on 2026-10-24: Intel Core i5-1240P (16 logical CPUs), OS-reported
 7.62 GiB RAM, Windows 11 build 26200, Python 3.12.10, OpenVINO 2026.4.1,
 Python graphviz 0.21, native Graphviz 16.1.0. No model compilation or inference
@@ -746,6 +850,8 @@ was performed. The environment and full measurements are saved in
 [tinyllama.json](benchmarks/tinyllama.json),
 [small-and-scale.json](benchmarks/small-and-scale.json), and
 [scaling.json](benchmarks/scaling.json).
+These historical measurements and the 600-second timeout below apply to the first
+submission without fan-out references, not the updated transformed SVG above.
 
 Times below are seconds. Load includes reading IR and constructing the independent
 graph; the JSON also separates these. Pass time includes validation. Render
@@ -803,7 +909,7 @@ python scripts/create_example_models.py
 python scripts/download_tinyllama.py
 python scripts/benchmark_scaling.py
 python scripts/benchmark.py --model models/mlp.xml --model models/branching.xml --model models/synthetic_5002.xml --output-dir artifacts/benchmark-svg --report benchmarks/small-and-scale.json
-python scripts/benchmark.py --model models/tinyllama/openvino_model.xml --layout fast --timeout 180 --report benchmarks/tinyllama.json
+python scripts/benchmark.py --model models/tinyllama/openvino_model.xml --layout fast --timeout 180 --output-dir artifacts/benchmark-svg --report benchmarks/tinyllama.json
 ```
 
 The benchmark saves a failed status and error, without a claimed SVG, if rendering
@@ -831,5 +937,10 @@ implemented, and would need separate correctness tests.
 - Large SVGs need browser zoom and can be difficult to navigate. Graphviz layout
   cost depends strongly on topology, not just node count. A fast chain benchmark
   does not predict performance on LLMs. Exact layout varies with fonts/versions.
+- Fan-out references preserve connections through IDs/ports and JSON, but require
+  lookup instead of tracing every arrow. Open SVGs directly in a browser to use
+  links; image previews may disable navigation. Run this pass after structural
+  transformations; rerun it if connectivity changes and the threshold should be
+  recomputed. Compact labels require the accompanying JSON for full attributes.
 - Passes modify the visualization graph in place without rollback. They may
   return `None` or the same graph, but cannot replace it with a new graph.

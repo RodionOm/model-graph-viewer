@@ -1,0 +1,269 @@
+{
+  "schema_version": 1,
+  "compact_labels": true,
+  "connectivity": "All edges after structural passes; referenced edges remain present. Hidden Constant connections are stored under each node's hidden_constants.",
+  "nodes": {
+    "0": {
+      "svg_id": "node_n0",
+      "name": "shared_input_for_four_processing_branches",
+      "op_type": "Parameter",
+      "input_ports": [],
+      "output_ports": [
+        0
+      ],
+      "attributes": {
+        "shape": "[1, 4]",
+        "element_type": "fp32"
+      },
+      "hidden_constants": [],
+      "visualization": {
+        "reference_fanout": true
+      }
+    },
+    "1": {
+      "svg_id": "node_n1",
+      "name": "processing_branch_3",
+      "op_type": "Relu",
+      "input_ports": [
+        0
+      ],
+      "output_ports": [
+        0
+      ],
+      "attributes": {},
+      "hidden_constants": [],
+      "visualization": {}
+    },
+    "2": {
+      "svg_id": "node_n2",
+      "name": "result_3",
+      "op_type": "Result",
+      "input_ports": [
+        0
+      ],
+      "output_ports": [
+        0
+      ],
+      "attributes": {},
+      "hidden_constants": [],
+      "visualization": {}
+    },
+    "3": {
+      "svg_id": "node_n3",
+      "name": "processing_branch_2",
+      "op_type": "Relu",
+      "input_ports": [
+        0
+      ],
+      "output_ports": [
+        0
+      ],
+      "attributes": {},
+      "hidden_constants": [],
+      "visualization": {}
+    },
+    "4": {
+      "svg_id": "node_n4",
+      "name": "result_2",
+      "op_type": "Result",
+      "input_ports": [
+        0
+      ],
+      "output_ports": [
+        0
+      ],
+      "attributes": {},
+      "hidden_constants": [],
+      "visualization": {}
+    },
+    "5": {
+      "svg_id": "node_n5",
+      "name": "processing_branch_1",
+      "op_type": "Relu",
+      "input_ports": [
+        0
+      ],
+      "output_ports": [
+        0
+      ],
+      "attributes": {},
+      "hidden_constants": [],
+      "visualization": {}
+    },
+    "6": {
+      "svg_id": "node_n6",
+      "name": "result_1",
+      "op_type": "Result",
+      "input_ports": [
+        0
+      ],
+      "output_ports": [
+        0
+      ],
+      "attributes": {},
+      "hidden_constants": [],
+      "visualization": {}
+    },
+    "7": {
+      "svg_id": "node_n7",
+      "name": "processing_branch_0",
+      "op_type": "Relu",
+      "input_ports": [
+        0
+      ],
+      "output_ports": [
+        0
+      ],
+      "attributes": {},
+      "hidden_constants": [],
+      "visualization": {
+        "border_color": "red"
+      }
+    },
+    "8": {
+      "svg_id": "node_n8",
+      "name": "result_0",
+      "op_type": "Result",
+      "input_ports": [
+        0
+      ],
+      "output_ports": [
+        0
+      ],
+      "attributes": {},
+      "hidden_constants": [],
+      "visualization": {}
+    }
+  },
+  "edges": [
+    {
+      "from_node": "0",
+      "from_port": 0,
+      "to_node": "1",
+      "to_port": 0,
+      "tensor": {
+        "shape": {
+          "dimensions": [
+            1,
+            4
+          ]
+        },
+        "dtype": "fp32"
+      },
+      "rendered": false
+    },
+    {
+      "from_node": "1",
+      "from_port": 0,
+      "to_node": "2",
+      "to_port": 0,
+      "tensor": {
+        "shape": {
+          "dimensions": [
+            1,
+            4
+          ]
+        },
+        "dtype": "fp32"
+      },
+      "rendered": true
+    },
+    {
+      "from_node": "0",
+      "from_port": 0,
+      "to_node": "3",
+      "to_port": 0,
+      "tensor": {
+        "shape": {
+          "dimensions": [
+            1,
+            4
+          ]
+        },
+        "dtype": "fp32"
+      },
+      "rendered": false
+    },
+    {
+      "from_node": "3",
+      "from_port": 0,
+      "to_node": "4",
+      "to_port": 0,
+      "tensor": {
+        "shape": {
+          "dimensions": [
+            1,
+            4
+          ]
+        },
+        "dtype": "fp32"
+      },
+      "rendered": true
+    },
+    {
+      "from_node": "0",
+      "from_port": 0,
+      "to_node": "5",
+      "to_port": 0,
+      "tensor": {
+        "shape": {
+          "dimensions": [
+            1,
+            4
+          ]
+        },
+        "dtype": "fp32"
+      },
+      "rendered": false
+    },
+    {
+      "from_node": "5",
+      "from_port": 0,
+      "to_node": "6",
+      "to_port": 0,
+      "tensor": {
+        "shape": {
+          "dimensions": [
+            1,
+            4
+          ]
+        },
+        "dtype": "fp32"
+      },
+      "rendered": true
+    },
+    {
+      "from_node": "0",
+      "from_port": 0,
+      "to_node": "7",
+      "to_port": 0,
+      "tensor": {
+        "shape": {
+          "dimensions": [
+            1,
+            4
+          ]
+        },
+        "dtype": "fp32"
+      },
+      "rendered": false
+    },
+    {
+      "from_node": "7",
+      "from_port": 0,
+      "to_node": "8",
+      "to_port": 0,
+      "tensor": {
+        "shape": {
+          "dimensions": [
+            1,
+            4
+          ]
+        },
+        "dtype": "fp32"
+      },
+      "rendered": true
+    }
+  ],
+  "svg_sha256": "e4606f178f6fb5c4aaa67f0b62e91bbf5c12aa3efe18736f289597d801682212"
+}

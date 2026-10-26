@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-26",
+  "installation": "wheel installed without dependencies into separate verification venv; import confirmed in site-packages",
+  "wheel_sha256": "de41fd08c72888aed13e3a0eb8c94b5d051f86a1cc38f196e1ceaf91051477d1",
+  "source_files_matching_wheel": [
+    "model_graph_viewer/__init__.py",
+    "model_graph_viewer/__main__.py",
+    "model_graph_viewer/api.py",
+    "model_graph_viewer/cli.py",
+    "model_graph_viewer/configuration.py",
+    "model_graph_viewer/environment.py",
+    "model_graph_viewer/errors.py",
+    "model_graph_viewer/graph.py",
+    "model_graph_viewer/loaders/__init__.py",
+    "model_graph_viewer/loaders/base.py",
+    "model_graph_viewer/loaders/openvino.py",
+    "model_graph_viewer/passes/__init__.py",
+    "model_graph_viewer/passes/base.py",
+    "model_graph_viewer/passes/fanout.py",
+    "model_graph_viewer/passes/hide_constants.py",
+    "model_graph_viewer/passes/highlight.py",
+    "model_graph_viewer/passes/pipeline.py",
+    "model_graph_viewer/renderers/__init__.py",
+    "model_graph_viewer/renderers/graphviz.py",
+    "model_graph_viewer/renderers/metadata.py"
+  ],
+  "pytest": {
+    "passed": 280,
+    "failed": 0,
+    "skipped": 0
+  },
+  "ruff_check": "passed",
+  "ruff_format": "passed",
+  "installed_wheel_reproduced_byte_identically": [
+    "examples/svg/tinyllama_after.svg",
+    "examples/svg/tinyllama_after.json",
+    "examples/svg/fanout_before.svg",
+    "examples/svg/fanout_after.svg",
+    "examples/svg/fanout_after.json"
+  ],
+  "artifact_sha256": {
+    "examples/svg/tinyllama_after.svg": "4d0a418d853603c2aee7f10a731d2ba72bb55fe39b94fd5e6371af9104fe6883",
+    "examples/svg/tinyllama_after.json": "1e4f8af42fee97e531cc7d209c2696fb048081e6e2f8660dd489394b3f1fa40c",
+    "examples/svg/fanout_before.svg": "5a0a687c37664185a4b6a258332a6d9988b24e1f4d8fb62dafd4cdbb23c6d3ff",
+    "examples/svg/fanout_after.svg": "e4606f178f6fb5c4aaa67f0b62e91bbf5c12aa3efe18736f289597d801682212",
+    "examples/svg/fanout_after.json": "6477d1458f91470eff7042c1b614e05646d645a469e46843c4de744f700f5e52"
+  },
+  "connectivity": "All 3789 original TinyLlama port connections recovered from edges plus hidden constants; SVG contains 2205 arrows and 272 clickable references.",
+  "visual_review": "Edge: same projection before/after at equal scale; separate four-consumer fan-out example.",
+  "limits": [
+    "Windows only; exact layout is environment-dependent.",
+    "Full SVG remains large; references replace visual arrow tracing with source lookup.",
+    "SVG/JSON replacements are individually atomic, not a transaction; JSON SHA256 detects mismatches."
+  ]
+}

@@ -1,0 +1,158 @@
+{
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.10",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "logical_cpus": 16,
+    "openvino": "2026.4.1",
+    "python_graphviz": "0.21",
+    "graphviz": "dot - graphviz version 16.1.0 (20260904.0139)",
+    "physical_memory_bytes": 8183242752
+  },
+  "model": {
+    "path": "models/tinyllama/openvino_model.xml",
+    "size_bytes": 1612967,
+    "sha256": "86e594d53e12ebe7ea85335828e363e8f550dadb661b99f7b3c2e59b6b604a10"
+  },
+  "weights": {
+    "path": "models/tinyllama/openvino_model.bin",
+    "size_bytes": 2200097101,
+    "sha256": "f2e830359ae60f25f3aaeea3a5207c5f5dedee0661dad32b9d679a00d6f3068f"
+  },
+  "method": "One sequential run per variant, warm files after hashing; same loaded graph. Render includes DOT, layout, SVG and (when compact) JSON export. Timing is not a guarantee; canvas size is not a readability score. Previous layout uses fast; final layout uses default spline routing.",
+  "variants": [
+    {
+      "name": "previous",
+      "layout": "fast",
+      "compact": false,
+      "render_seconds": 17.163664299994707,
+      "reference_pass_seconds": 0,
+      "all_original_connections_recovered": true,
+      "graph_edges": 2477,
+      "output": "artifacts/readability/previous.svg",
+      "node_count": 1957,
+      "drawn_edge_count": 2477,
+      "reference_link_count": 0,
+      "viewbox": [
+        0.0,
+        0.0,
+        13267.0,
+        161676.0
+      ],
+      "median_node_width_pt": 282.5,
+      "max_node_width_pt": 488.0,
+      "svg_bytes": 4218601,
+      "sha256": "1bb7d751b093b854a907924f42f2c824511544d690a3608d03c11f28fa471f56"
+    },
+    {
+      "name": "compact_only",
+      "layout": "fast",
+      "compact": true,
+      "render_seconds": 19.670522900065407,
+      "reference_pass_seconds": 0,
+      "all_original_connections_recovered": true,
+      "graph_edges": 2477,
+      "output": "artifacts/readability/compact_only.svg",
+      "node_count": 1957,
+      "drawn_edge_count": 2477,
+      "reference_link_count": 0,
+      "viewbox": [
+        0.0,
+        0.0,
+        9074.0,
+        130833.0
+      ],
+      "median_node_width_pt": 59.76000000000022,
+      "max_node_width_pt": 158.76000000000022,
+      "svg_bytes": 3777005,
+      "sha256": "a302afe14528474efe0bf14a64b53b36b130a171ecd80b955c19687f6770fd5d"
+    },
+    {
+      "name": "compact_references",
+      "layout": "default",
+      "compact": true,
+      "render_seconds": 9.188008600031026,
+      "reference_pass_seconds": 0.05120400001760572,
+      "all_original_connections_recovered": true,
+      "graph_edges": 2477,
+      "output": "examples/svg/tinyllama_after.svg",
+      "node_count": 1957,
+      "drawn_edge_count": 2205,
+      "reference_link_count": 272,
+      "viewbox": [
+        0.0,
+        0.0,
+        13635.0,
+        142335.0
+      ],
+      "median_node_width_pt": 68.0,
+      "max_node_width_pt": 158.76000000000022,
+      "svg_bytes": 3830802,
+      "sha256": "4d0a418d853603c2aee7f10a731d2ba72bb55fe39b94fd5e6371af9104fe6883"
+    }
+  ],
+  "load_seconds": 0.45556460006628186,
+  "original_connections": 3789,
+  "diagnosis": {
+    "nodes": 1957,
+    "edges": 2477,
+    "names_over_60_characters": 522,
+    "high_fanout_sources": [
+      {
+        "node_id": "0",
+        "name": "beam_idx",
+        "op_type": "Parameter",
+        "outgoing_edges": 44
+      },
+      {
+        "node_id": "141",
+        "name": "__module.model.layers.0.self_attn/prim::ListConstruct_2",
+        "op_type": "Concat",
+        "outgoing_edges": 44
+      },
+      {
+        "node_id": "66",
+        "name": "__module.model.layers.0.self_attn/aten::unsqueeze/Unsqueeze",
+        "op_type": "Unsqueeze",
+        "outgoing_edges": 44
+      },
+      {
+        "node_id": "83",
+        "name": "__module.model.layers.0.self_attn/aten::unsqueeze/Unsqueeze_1",
+        "op_type": "Unsqueeze",
+        "outgoing_edges": 44
+      },
+      {
+        "node_id": "9",
+        "name": "Gather_68809",
+        "op_type": "Gather",
+        "outgoing_edges": 44
+      },
+      {
+        "node_id": "226",
+        "name": "__module.model.layers.0.self_attn/aten::slice/Slice_15",
+        "op_type": "Slice",
+        "outgoing_edges": 22
+      },
+      {
+        "node_id": "228",
+        "name": "__module.model.layers.0.self_attn/aten::scaled_dot_product_attention/ConvertLike",
+        "op_type": "Convert",
+        "outgoing_edges": 22
+      },
+      {
+        "node_id": "131",
+        "name": "Gather_61026",
+        "op_type": "Gather",
+        "outgoing_edges": 4
+      },
+      {
+        "node_id": "40",
+        "name": "__module.model.layers.0.input_layernorm/aten::mul/Multiply_1",
+        "op_type": "Multiply",
+        "outgoing_edges": 4
+      }
+    ]
+  },
+  "model_files_unchanged": true
+}
